@@ -1,0 +1,53 @@
+{
+  "name": "new-relese",
+  "version": "0.1.0",
+  "main": "main.js",
+  "private": true,
+  "dependencies": {
+    "@testing-library/jest-dom": "^4.2.4",
+    "@testing-library/react": "^9.3.2",
+    "@testing-library/user-event": "^7.1.2",
+    "braft-extensions": "^0.0.20",
+    "react": "^16.12.0",
+    "react-dom": "^16.12.0",
+    "react-scripts": "3.3.0"
+  },
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject",
+    "dev": "concurrently \"wait-on http://localhost:3000 && electron .\" \"cross-env BROWSER=none npm start\""
+  },
+  "eslintConfig": {
+    "extends": "react-app"
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "devDependencies": {
+    "antd": "^3.26.3",
+    "braft-editor": "^2.3.8",
+    "braft-utils": "^3.0.12",
+    "concurrently": "^5.0.2",
+    "cross-env": "^6.0.3",
+    "electron": "^7.1.6",
+    "electron-is-dev": "^1.1.0",
+    "electron-store": "^5.1.0",
+    "moment": "^2.24.0",
+    "rc-form-hooks": "^0.0.1-beta.14",
+    "react-router-dom": "^5.1.2",
+    "react-simplemde-editor": "^4.1.0",
+    "wait-on": "^3.3.0"
+  },
+  "proxy": "http://localhost:3333"
+}
