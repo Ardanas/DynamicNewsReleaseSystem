@@ -81,11 +81,24 @@ function FileManagePage() {
     const handleDelete = key => {
         setDataSource(dataSource.filter(item => item.key !== key));
     };
+    const handlePaginationChange = (pageNo, pageSize) => {
+        console.log(pageNo, pageSize);
+    }
+    const paginationOption = {
+        pageSize: 10,
+        total: 200,
+        onChange: handlePaginationChange,
+        showSizeChanger: true,
+        onShowSizeChange: handlePaginationChange
+    }
+    // 当出现滚动条的时候, table 的 表格需要动态计算高度
     return (
         <Table
             rowKey="uid"
             columns={tableColumns}
-            dataSource={dataSource} />
+            dataSource={dataSource}
+            pagination={paginationOption}
+        />
     )
 }
 

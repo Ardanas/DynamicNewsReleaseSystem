@@ -1,5 +1,5 @@
 const menuConfig = [
-    { path: "create", title: "新建新闻", icon: "bars"},
+    { path: "create", title: "新建新闻", icon: "bars", defaultSelected: true},
     {
         path: "release", key: "release", title: "编写新闻", icon: "edit", children: [
             { path: "md", key: "md", title: " Markdown", icon: "info-circle", },
@@ -7,10 +7,10 @@ const menuConfig = [
         ]
     },
     { path: "manage", title: "文件管理", icon: "bars" },
-    { path: "material", title: "素材库", icon: "bars", defaultSelected: true  },
+    { path: "material", title: "素材库", icon: "bars"  },
     { path: "12", title: "setting", icon: "bars" },
 ]
-const redirectPath = '/nav/material'
+const redirectPath = '/nav/create'
 export default {
     menuConfig,
     redirectPath

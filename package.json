@@ -45,6 +45,7 @@
     "electron-store": "^5.1.0",
     "moment": "^2.24.0",
     "rc-form-hooks": "^0.0.1-beta.14",
+    "react-infinite-scroller": "^1.2.4",
     "react-router-dom": "^5.1.2",
     "react-simplemde-editor": "^4.1.0",
     "wait-on": "^3.3.0"

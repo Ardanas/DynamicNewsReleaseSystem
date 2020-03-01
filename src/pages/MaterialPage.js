@@ -1,6 +1,6 @@
-import React, { useState } from 'react'
-import { Button, Icon, Modal, Checkbox, Row, Col, Card, List, Skeleton, Upload, message } from 'antd'
-const fileListMock = [
+import React, { useState, useRef } from 'react'
+import { Button, Icon, Modal, Checkbox, Row, Col, Card, List, Skeleton, Upload, message, Pagination } from 'antd'
+let fileListMock = [
     {
         uid: '-1',
         name: 'image.png',
@@ -57,6 +57,10 @@ const fileListMock = [
     }
 ]
 
+/*for (let i = 0; i < 3; i++) {
+    fileListMock.push(...fileListMock)
+}*/
+
 function MaterialPage() {
 
     const [previewVisible, setPreviewVisible] = useState(false)
@@ -65,6 +69,7 @@ function MaterialPage() {
     const [selectedList, setSelectedList] = useState([])
     const [isCheckedAll, setIsCheckedAll] = useState(false)
     const [isManageModal, setIsManageModal] = useState(false)
+    const fileListContainerRef = useRef(null)
 
     const getBase64 = (file) => {
         return new Promise((resolve, reject) => {
@@ -169,31 +174,34 @@ function MaterialPage() {
                 return total.concat(currentValue.uid)
             }, [])
         }
-        console.log(uidList)
+        handleToggleActive(checked)
         setSelectedList(uidList)
         setIsCheckedAll(checked)
     }
     const handleCheckd = (e) => {
         const { checked, value } = e.target;
-        console.log(checked)
-        console.log(value)
         const item = checked ? [...selectedList, value] : selectedList.filter(item => item !== value)
         console.log(item)
 
         setSelectedList(item)
-        console.log(selectedList)
+        setIsCheckedAll(item.length === fileList.length)
 
-        if (item.length === fileList.length) {
-            console.log("nice")
-            setIsCheckedAll(true)
-        } else {
-            setIsCheckedAll(false)
-        }
 
     }
 
     const handleManageModal = () => {
         setIsManageModal(!isManageModal)
+        handleToggleActive(false) // 清除状态
+        setSelectedList([])  // 清除选中selectedList
+        setIsCheckedAll(false)  // 全选初始化
+    }
+
+    const handleToggleActive = (checked) => {
+        const item = document.getElementsByClassName('material-item')
+        for (let i = 0; i < item.length; i++) {
+            const target = item[i]
+            checked ? target.classList.add('active') : target.classList.remove('active')
+        }
     }
 
     const handleDeleteChecked = () => {
@@ -201,20 +209,53 @@ function MaterialPage() {
         selectedList.map(selectedItem => {
             fileListItem = fileListItem.filter(listItem => listItem.uid !== selectedItem)
         })
-        setFileList(fileListItem)
+        Modal.confirm({
+            title: '提示信息',
+            content: `已选中${selectedList.length}张, 确定要删除吗？`,
+            okText: '确定',
+            cancelText: '取消',
+            onOk() {
+                setFileList(fileListItem)
+                handleToggleActive(false)//删除完毕将选中状态取消
+                setSelectedList([]) //置空选中列表
+            }
+        })
     }
 
+    const handleImgsClick = (item, e) => {
+        e.persist()
+        console.log(e.target)
+        const { url, uid } = item
+        if (isManageModal) {
+            const { target } = e
+            target.classList.toggle('active');
+            const _selectedList = target.classList.contains('active') ? [...selectedList, uid] : selectedList.filter(data => data !== uid)
+            console.log(_selectedList)
+            setSelectedList(_selectedList)
+            setIsCheckedAll(_selectedList.length === fileList.length)
+        } else {
+            setPreviewVisible(true)
+            setPreviewImage(url)
+        }
+    }
+
+    const handleShowSizeChange = (pageNo, pageSize) => {
+        console.log(pageNo, pageSize);
+    }
+    const handlePaginationChange = (pageNo, pageSize) => {
+        console.log(pageNo, pageSize);
+
+    }
     return (
         <>
             <Row type='flex' align='middle' style={{ marginBottom: 10 }}>
                 <Col span={12}>
                     <Row type='flex' align='middle'>
-
                         <Checkbox
                             value='checkedAll'
                             onChange={handleCheckedAll}
                             checked={isCheckedAll}
-                            style={{ fontSize: 16, display: isManageModal ? 'block' : 'none' }}
+                            style={{ padding: '0 10px', fontSize: 16, display: isManageModal ? 'block' : 'none' }}
                         >
                             全选
                         </Checkbox>
@@ -242,85 +283,66 @@ function MaterialPage() {
                     </Upload>
                 </Col>
             </Row>
-
-            <Checkbox.Group
-                style={{ width: '100%' }}
-                value={selectedList}
-            >
+            <Row style={{ width: '100%' }}>
                 <List
+                    className='listContainer'
                     grid={{ gutter: 10, column: 4 }}
                     dataSource={fileList}
                     renderItem={item => (
                         <List.Item>
                             <Skeleton loading={false}>
                                 <Card
-                                    bodyStyle={{ padding: 10 }}
+                                    bodyStyle={{ padding: 10, cursor: isManageModal ? 'pointer' : '' }}
+                                    onClick={isManageModal ? handleImgsClick.bind(this, item) : undefined}
                                 >
-                                    <div style={{ width: '100%', height: 156, overflow: 'hidden', backgroundColor: '#f4f4f4', marginBottom: 10 }}>
+                                    <div
+                                        className={isManageModal ? 'material-item': ''}
+                                        onClick={!isManageModal ? handleImgsClick.bind(this, item) : undefined}
+                                        style={{ width: '100%', height: 156, overflow: 'hidden', backgroundColor: '#f4f4f4', marginBottom: 10 }}>
                                         <img
                                             alt={item.name}
                                             src={item.url}
                                             width='100%'
                                             height='100%'
                                             style={{ cursor: 'pointer', objectFit: 'contain' }}
-                                            onClick={() => {
-                                                setPreviewVisible(true)
-                                                setPreviewImage(item.url)
-                                            }}
                                         />
                                     </div>
-                                    <Row type='flex' justify='space-around' align='middle'>
-
-                                        <Checkbox
-                                            value={item.uid}
-                                            onChange={handleCheckd}
-                                            style={{ textAlign: 'center', display: isManageModal ? 'block' : 'none' }}
-                                        >
-                                            <span style={{ fontSize: 16 }}>{item.name}</span>
-                                        </Checkbox>
-                                        {/*<Icon type="edit" style={{ fontSize: 18 }} color='#333' />*/}
-                                        <Row type='flex' align='middle' justify='end' style={{ display: !isManageModal ? 'block' : 'none' }}>
-
-                                            <p style={{ padding: '0 20px', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{item.name}</p>
-
-
+                                    <Row type='flex' justify='space-between' align='middle' style={{ width: '100%' }}>
+                                        <Col span={21}>
+                                            <p
+                                                alt={item.name}
+                                                title={item.name}
+                                                style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', textAlign: 'center' }}>
+                                                {item.name}
+                                            </p>
+                                        </Col>
+                                        <Col span={3}>
                                             <Icon
                                                 onClick={handleDelete.bind(null, item.uid)}
                                                 type="delete"
-                                                style={{ fontSize: 18, cursor: 'pointer' }}
+                                                style={{ fontSize: 18, cursor: 'pointer', display: isManageModal ? 'none' : 'block' }}
                                                 color='#333' />
-
-                                        </Row>
-
+                                        </Col>
                                     </Row>
                                 </Card>
                             </Skeleton>
                         </List.Item>
                     )}
                 />
-
-
-            </Checkbox.Group>
+            </Row>
+            <Row style={{textAlign: 'right'}}>
+                <Pagination
+                    onChange={handlePaginationChange}
+                    pageSizeOptions={['10', '20', '30', '40']}
+                    showSizeChanger
+                    onShowSizeChange={handleShowSizeChange}
+                    defaultCurrent={1}
+                    total={20}
+                />
+            </Row>
             <Modal visible={previewVisible} footer={null} onCancel={() => setPreviewVisible(false)}>
                 <img alt="example" style={{ width: '100%' }} src={previewImage} />
             </Modal>
-
-
-
-            {/*
-        <div className="clearfix">
-            <Upload
-                action="https://www.mocky.io/v2/5cc8019d300000980a055e76"
-                listType="picture-card"
-                fileList={fileList}
-                onPreview={handlePreview}
-                onChange={handleChange}
-            >
-                {fileList.length >= 100 ? null : uploadButton}
-            </Upload>
-            
-        </div>
-        */}
         </>
 
     )

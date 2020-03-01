@@ -2,9 +2,6 @@
     overflow: hidden;
 }
 
-.editor-modal-item{
-
-}
 .editor-modal-item::before {
     display: none;
     position: absolute;
@@ -19,11 +16,25 @@
     line-height: 123px;
     text-align: center;
 }
-.editor-modal-item.active::before {
+.material-item::before {
+    display: none;
+    position: absolute;
+    z-index: 2;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    color: #fff;
+    font-size: 48px;
+    font-family: 'bf-icons';
+    line-height: 200px;
+    text-align: center;
+}
+.editor-modal-item.active::before, .material-item.active::before {
     display: block;
     content: "\E912";
 }
-.editor-modal-item::after {
+.editor-modal-item::after, .material-item::after{
     position: absolute;
     z-index: 1;
     top: 0;
@@ -33,6 +44,20 @@
     background-color: rgba(52, 152, 219, 0);
     content: '';
 }
-.editor-modal-item.active::after {
+.editor-modal-item.active::after, .material-item.active::after {
     background-color: rgba(52, 152, 219, 0.6);
+}
+
+
+.infinite-container {
+    border: 1px solid #e8e8e8;
+    border-radius: 4px;
+    padding: 8px 24px;
+}
+
+.draft-loading-container{
+    position: absolute;
+    bottom: 40px;
+    width: 100%;
+    text-align: center;
 }
