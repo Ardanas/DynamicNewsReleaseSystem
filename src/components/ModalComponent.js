@@ -1,6 +1,5 @@
 import React, { useState } from 'react'
 import { Modal } from 'antd'
-import btn_close from '../common/modal/img/btn-close.png'
 
 /*function ModalComponent({ modalVisible = false, title, template, handleOkChange = null, handleCancelChange = null }) {
     console.log(modalVisible)
@@ -53,7 +52,6 @@ class ModalComponent extends React.Component {
                 onCancel={this.handleCancel}
                 footer={[
                 ]}
-                closeIcon={<img src={btn_close} />}
             >
                 {template}
             </Modal>

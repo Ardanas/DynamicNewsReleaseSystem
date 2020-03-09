@@ -1,125 +1,87 @@
 import React, { useState } from 'react'
-import { Upload, Icon, Button, message, Modal } from 'antd'
+import { Upload, Icon, Button, message, Modal, Row, Col } from 'antd'
+import { useRequest } from '@umijs/hooks';
+import api from '../utils/api';
+import defaultConfig from '../common/config'
+const { addMaterialList } = api
+function UploadImage({
+    showUploadList = false,
+    multiple = false,
+    listType = 'picture-card',
+    limitType = ['jpeg', 'png'],
+    limitSize = 2,
+    data = {},
+    className = 'image-uploader',
+    showTemplate = false,
+    fileList = null,
+    template = null,
+    onChange = null
+}) {
 
-const { Dragger } = Upload;
-function UploadImage() {
-
-    const [loading, setLoading] = useState(false)
     const [imageUrl, setImageUrl] = useState('')
-    const [previewVisible, setPreviewVisible] = useState(false)
-    const [previewImage, setPreviewImage] = useState('')
+    const { run, loading } = useRequest(addMaterialList, {
+        manual: true,
+        onSuccess: (result, params) => {
+            console.log(result)
+            const { sign, datas } = result
+            //判断是否上传成功，成功则执行
+            if (sign === '1') {
+                //请求添加到素材库的新接口，
+                setImageUrl(datas.path)
+                message.info('图片上传成功')
+                onChange && onChange(datas)
+            }else{
+                message.info('图片上传失败')
+            }
+        }
+    });
     const uploadButton = (
         <div>
             <Icon type={loading ? 'loading' : 'camera'} />
         </div>
     );
-    const getBase64 = (img, callback) => {
-        const reader = new FileReader();
-        reader.addEventListener('load', () => callback(reader.result));
-        reader.readAsDataURL(img);
+    const customRequest = ({ file }) => {
+        const form = new FormData();
+        form.set('file', file);
+        form.set('uid', defaultConfig.uid)
+        data && form.set('data', data)
+        run(form)
     }
-    const beforeUpload = (file) => {
-        const isJpgOrPng = file.type === 'image/jpeg' || file.type === 'image/png';
-        if (!isJpgOrPng) {
-            message.error('You can only upload JPG/PNG file!');
-        }
-        const isLt2M = file.size / 1024 / 1024 < 0.5;
-        if (!isLt2M) {
-            message.error('Image must smaller than 2MB!');
-        }
-        return isJpgOrPng && isLt2M;
-    }
-    const handleChange = info => {
-        console.log(info)
-        //重新上传清空地址
-        if (imageUrl !== '') {
-            setImageUrl('')
-        }
-        if (info.file.status === 'uploading') {
-            setLoading(true);
-            return;
-        }
-        if (info.file.status === 'done') {
-            // Get this url from response in real world.
-            getBase64(info.file.originFileObj, imageUrl => {
-                setImageUrl(imageUrl);
-                setLoading(false)
-            });
-        }
-    };
-    const handlePreview = async file => {
-        if (!file.url && !file.preview) {
-            file.preview = await getBase64(file.originFileObj);
-        }
-
-        setPreviewImage(file.url || file.preview)
-        setPreviewVisible(true)
-    };
-    /*
     const props = {
         name: 'file',
-        multiple: false,
-        accept: 'image',
-        showUploadList: false,
-        action: 'https://www.mocky.io/v2/5cc8019d300000980a055e76',
+        fileList,
+        listType,
+        className,
+        multiple,
+        accept: 'image/*',
+        showUploadList,
+        customRequest,
         beforeUpload(file) {
-            const isJpgOrPng = file.type === 'image/jpeg' || file.type === 'image/png';
-            if (!isJpgOrPng) {
-                message.error('You can only upload JPG/PNG file!');
+            const isLimitType = limitType.findIndex(item => item === file.type)
+            const isLimitSize = file.size / 1024 / 1024 < limitSize;
+            if (isLimitType === '-1') {
+                message.error(`图片类型只能是${limitType.join(',')}`);
+                return isLimitType
             }
-            const isLt2M = file.size / 1024 / 1024 < 0.5;
-            if (!isLt2M) {
-                message.error('Image must smaller than 2MB!');
+            if (!isLimitSize) {
+                message.error(`图片大小不能超过${limitSize}MB!`);
+                return isLimitSize
             }
-            return isJpgOrPng && isLt2M;
-        },
-        onChange(info) {
-            console.log(info)
-            if (info.file.status === 'uploading') {
-                setLoading(true);
-                return;
-            }
-            if (info.file.status === 'done') {
-              
-                // Get this url from response in real world.
-                getBase64(info.file.originFileObj, imageUrl => {
-                    console.log(imageUrl)
-                    setImageUrl(imageUrl);
-                    setLoading(false)
-                });
-            }
+            return isLimitType && isLimitSize;
         }
-
-    };*/
+    };
     return (
-        <>
-            {
-                /*
-                 <Dragger {...props} style={{ padding: 0 }} >
-                    <p className="ant-upload-drag-icon">
-                        {imageUrl ? <img src={imageUrl} alt="avatar" style={{ width: '100%', maxHeight: 200, objectFit: 'scale-down' }} /> : uploadButton}
-                    </p>
-                </Dragger>*/
-
-            }
-
-
-            <Upload
-                name="avatar"
-                listType="picture-card"
-                className="avatar-uploader"
-                showUploadList={false}
-                action="https://www.mocky.io/v2/5cc8019d300000980a055e76"
-                beforeUpload={beforeUpload}
-                onPreview={handlePreview}
-                onChange={handleChange}
-            >
-                {imageUrl ? <img src={imageUrl} alt="avatar" style={{ width: '100%' }} /> : uploadButton}
+        <Row>
+            <Upload {...props} >
+                {
+                    showTemplate ? (
+                        <Button type='primary'>上传图片</Button>
+                    ) : (
+                        imageUrl ? <img src={imageUrl} alt="avatar" style={{ width: '100%' }} /> : uploadButton
+                    )
+                }
             </Upload>
-            <Modal visible={previewVisible} footer={null} onCancel={() => setPreviewVisible(false)}>
-                <img alt="example" style={{ width: '100%' }} src={previewImage} />
-            </Modal>
-        </>
+        </Row>
     )
 }
 

@@ -1,48 +1,46 @@
 import React, { useState, useRef } from 'react'
+import { Row, Col } from 'antd'
 
-
-const inputStyle = {
-    width: '100%',
-    height: 44,
-    outlineStyle: 'none',
-    overflowY: 'hidden',
-    border: 0,
-    fontSize: 32,
-    fontWeight: 600,
-    resize: 'none',
-    lineHeight: 1.4,
-    paddingRight: 55
-};
-const inputHitWordSytle = {
-    position: 'absolute',
-    right: 0,
-    bottom: 0
-}
-const limitTitleNumber = 50
-function TitleInput({ onChange = null }) {
+function TitleInput({
+    onChange = null,
+    placeholder = '',
+    maxLength = 50,
+    compClass = '',
+    defaultHeigt = 44
+}) {
     const [inputValue, setInputValue] = useState('')
     const titleInputRef = useRef()
     const handleChange = (e) => {
         e.persist();
         setInputValue(e.target.value)
-        onChange && onChange(e.target.value)
-        titleInputRef.current.style.height = '44px'
+        titleInputRef.current.style.height = isNaN(defaultHeigt) ? defaultHeigt : `${defaultHeigt}px`
         if (titleInputRef.current.scrollHeight >= titleInputRef.current.offsetHeight) {
             titleInputRef.current.style.height = titleInputRef.current.scrollHeight + 'px'
         }
     }
+    const handleBlur = (e) => {
+        e.persist();
+        console.log(e.target.value)
+        onChange && onChange(e.target.value)
+    }
     return (
-        <div style={{ position: 'relative' }}>
-            <textarea
-                ref={titleInputRef}
-                maxLength={limitTitleNumber}
-                placeholder='请输入标题'
-                value={inputValue}
-                onChange={handleChange}
-                style={inputStyle} />
-            <span style={inputHitWordSytle}>{`(${inputValue.trim().length}/${limitTitleNumber})`}</span>
+        <Row type='flex'>
+            <Col span={22} style={{ display: 'flex', alignItems: 'center' }}>
+                <textarea
+                    className={`input-style-base ${compClass}`}
+                    ref={titleInputRef}
+                    maxLength={maxLength}
+                    placeholder={placeholder}
+                    value={inputValue}
+                    onChange={handleChange}
+                    onBlur={(e) => handleBlur(e)}
+                />
+            </Col>
+            <Col span={2}>
+                <span className='input-hit-word-sytle'>{`(${inputValue.trim().length}/${maxLength})`}</span>
+            </Col>
 
-        </div>
+        </Row>
     )
 }
 

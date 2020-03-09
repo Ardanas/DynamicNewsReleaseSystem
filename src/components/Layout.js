@@ -47,7 +47,7 @@ function HomeLayout() {
                     <Content
                         style={{
                             padding: 24,
-                            background: '#fff',
+                            background: '#f7f7f7',
                             minHeight: 280,
                         }}
                     >

@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react'
-import { List, Skeleton, Row, Col, Popconfirm, Spin } from 'antd'
+import { List, Skeleton, Row, Popconfirm, Spin } from 'antd'
 import InfiniteScroll from 'react-infinite-scroller';
+import moment from 'moment';
 
 let data = [
     {
@@ -81,60 +82,32 @@ let data = [
     }
 ]
 
-function DraftPage() {
+function DraftPage({ tableData = [], loading = false, onChange = null }) {
 
-    const [draftList, setDraftList] = useState(data)
-    const [loading, setLoading] = useState(false)
-    const [hasMore, setHasMore] = useState(true)
-    const draftItemDelete = useRef()
-    const draftItemTitle = {
-        color: '#444',
-        fontSize: 16,
-        textOverflow: 'ellipsis',
-        overflow: 'hidden',
-        whiteSpace: 'nowrap',
-        fontWeight: 600
-    }
-    const draftItemContent = {
-        display: '-webkit-box',
-        textOverflow: 'ellipsis',
-        overflow: 'hidden',
-        WebkitLineClamp: 3,
-        WebkitBoxOrient: 'vertical',
-        overflowWrap: 'break-word'
-    }
-    const draftItemContentContainer = {
-        display: 'inline-block',
-        backgroundColor: '#bfbfbf',
-        width: 3,
-        height: 14,
-        marginTop: 3,
-        marginRight: 5,
+    const [hasMore, setHasMore] = useState(false)
 
-    }
-    const handleDelete = key => {
-        setDraftList(draftList.filter(item => item.id !== key));
+    const handleDelete = id => {
+        onChange && onChange(id)
     };
 
-    const handlePaginationChange = (pageNo, pageSize) => {
-        console.log(pageNo, pageSize);
-    }
-    const paginationOption = {
-        pageSize: 10,
-        total: 200,
-        onChange: handlePaginationChange,
-        showSizeChanger: true,
-        onShowSizeChange: handlePaginationChange
-    }
     const handleInfiniteOnLoad = () => {
-        setLoading(true)
-        setTimeout(() => {
+        // if(draftList.length>=10)
+        // 请求返回的total,根据total去计算要不要再去请求
+        //setLoading(true)
+        /*setTimeout(() => {
             setDraftList([...draftList, ...draftList])
             setLoading(false)
             if (draftList.length > 10) {
                 setHasMore(false)
             }
-        }, 3000);
+        }, 3000);*/
+    }
+    if (loading) {
+        return (
+            <Row type='flex' justify='center'>
+                <Spin />
+            </Row>
+        )
     }
     return (
         <div style={{ height: 400, overflow: 'auto' }} className='infinite-container'>
@@ -147,14 +120,14 @@ function DraftPage() {
             >
                 <List
                     itemLayout="horizontal"
-                    dataSource={draftList}
+                    dataSource={tableData}
                     renderItem={item => (
                         <List.Item
                             actions={
                                 [<a key="list-loadmore-edit">编辑</a>,
                                 <Popconfirm
                                     title="删除后无法恢复，是否确定删除?"
-                                    onConfirm={() => handleDelete(item.id)}
+                                    onConfirm={() => handleDelete(item.systemid)}
                                     okText="确定"
                                     cancelText="取消"
                                 >
@@ -164,28 +137,33 @@ function DraftPage() {
                             }>
                             <List.Item.Meta
                                 avatar={
-                                    item.cover ?
-                                        <img src={item.cover} width={166} height={110} /> : null
+
+                                    item.cover ? (
+                                        <div style={{ width: '156px', height: 110 }}>
+                                            <img src={item.cover} className='image-contain' />
+                                        </div>
+
+                                    ) : null
                                 }
-                                title={<a href="#" style={draftItemTitle}>{item.title ? item.title : '无标题'}</a>}
+                                title={<a href="#" className='draft-item-title'>{item.title ? item.title : '无标题'}</a>}
                                 description={
-                                    <>
-                                        <p style={draftItemContent}>
-                                            <span style={draftItemContentContainer}></span>
-                                            {item.content ? item.content : ''}
+                                    <Row style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                                        <p className='draft-item-content-container' style={{ minHeight: item.cover ? 66 : null }}>
+                                            <span className='draft-item-content'></span>
+                                            <span dangerouslySetInnerHTML={{ __html: item.contentfortext ? String(item.contentfortext).replace(/\s*/g, "") : '' }}></span>
                                         </p>
-                                        <p style={{ color: '#646464' }}>{item.creacted_at}</p>
-                                    </>
+                                        <p style={{ color: '#646464' }}>{moment(item.last_time).format('YYYY-MM-DD HH:mm:ss')}</p>
+                                    </Row>
                                 }
                             />
                         </List.Item >
                     )}
                 />
-                
+
                 <div className="draft-loading-container">
                     <Spin spinning={loading && hasMore} />
                 </div>
-               
+
             </InfiniteScroll>
         </div>
     )

@@ -6,17 +6,27 @@ function RadioList({ dataLists = [], defaultRadioValue = '', buttonStyle = 'soli
     const listItems = dataLists.map((item, index) => {
         return (
             <Col span={4} key={item.id}>
-                <Radio.Button value={item.key} style={{ width: '100%', textAlign: 'center' }}>{item.value}</Radio.Button>
+                <Radio.Button 
+                    value={item.key} 
+                    style={{ width: '100%', textAlign: 'center' }}
+                >
+                    {item.value}
+                </Radio.Button>
             </Col>
         )
     })
     const handleRadioChange = e => {
-        console.log(e)
+        //console.log(e)
         onChange && onChange(e)
     }
     return (
         <Row gutter={[8, 16]}>
-            <Radio.Group defaultValue={defaultRadioValue} buttonStyle={buttonStyle} style={{ width: '100%' }} onChange={handleRadioChange}>
+            <Radio.Group 
+                defaultValue={defaultRadioValue} 
+                buttonStyle={buttonStyle} 
+                style={{ width: '100%' }} 
+                onChange={handleRadioChange}
+            >
                 {listItems}
             </Radio.Group>
         </Row>

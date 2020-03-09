@@ -1,5 +1,11 @@
-import React, { useState, useRef } from 'react'
-import { Button, Icon, Modal, Checkbox, Row, Col, Card, List, Skeleton, Upload, message, Pagination } from 'antd'
+import React, { useState, useEffect } from 'react'
+import { Button, Icon, Modal, Checkbox, Row, Col, Card, List, Skeleton, Upload, message, Pagination, Spin } from 'antd'
+import { useRequest } from '@umijs/hooks';
+import defaultConfig from '../common/config'
+import UploadImage from '../components/UploadImage'
+import api from '../utils/api';
+const { getMaterialList } = api
+console.log(api)
 let fileListMock = [
     {
         uid: '-1',
@@ -57,11 +63,8 @@ let fileListMock = [
     }
 ]
 
-/*for (let i = 0; i < 3; i++) {
-    fileListMock.push(...fileListMock)
-}*/
+export default function MaterialPage() {
 
-function MaterialPage() {
 
     const [previewVisible, setPreviewVisible] = useState(false)
     const [previewImage, setPreviewImage] = useState('')
@@ -69,7 +72,17 @@ function MaterialPage() {
     const [selectedList, setSelectedList] = useState([])
     const [isCheckedAll, setIsCheckedAll] = useState(false)
     const [isManageModal, setIsManageModal] = useState(false)
-    const fileListContainerRef = useRef(null)
+
+
+
+    const { run, cancel, loading } = useRequest(getMaterialList, {
+        manual: true,
+        //pollingInterval: 1000,
+        //pollingWhenHidden: false
+    });
+    //console.log(data)
+
+
 
     const getBase64 = (file) => {
         return new Promise((resolve, reject) => {
@@ -118,11 +131,8 @@ function MaterialPage() {
     }
     const uploadParams = {
         name: 'file',
-        action: '/user/file/uploadImg',
-        headers: {
-            authorization: 'authorization-text',
-            // Authorization: 'Bearer ' + localStorage.jwtToken 
-        },
+        action: '/user/addMaterialList',
+        data: { uid: defaultConfig.uid },
         fileList,
         showUploadList: false,
         multiple: true,
@@ -162,7 +172,27 @@ function MaterialPage() {
                 message.error(`图片上传失败`);
             }
             setFileList(newFileList)
+        }
+    }
 
+    const uploadParams2 = {
+        name: 'file',
+        multiple: true,
+        fileList,
+        showUploadList: false,
+        listType: null,
+        className: '',
+        showTemplate: true,
+        onChange(res) {
+            console.log(res)
+            const { originalFilename, path, status, sourceid } = res
+            const item = {
+                uid: sourceid,
+                name: originalFilename,
+                status: status,
+                url: path
+            }
+            setFileList([...fileList, item])
         }
     }
 
@@ -248,6 +278,12 @@ function MaterialPage() {
     }
     return (
         <>
+            {/*loading && <Spin />*/}
+            <Button onClick={() => {
+                run()
+            }} loading={loading}>
+                test
+            </Button>
             <Row type='flex' align='middle' style={{ marginBottom: 10 }}>
                 <Col span={12}>
                     <Row type='flex' align='middle'>
@@ -273,64 +309,63 @@ function MaterialPage() {
                     </Row>
                 </Col>
 
-                <Col span={12} style={{ textAlign: 'right', fontSize: 14, display: !isManageModal ? 'block' : 'none' }}>
-
-                    <span style={{ padding: '0 10px' }}>图片素材共有 {fileList.length} 张</span>
-                    <Upload {...uploadParams}>
-                        <Button type='primary'>
-                            上传照片
-                        </Button>
-                    </Upload>
+                <Col span={12} style={{ fontSize: 14, display: !isManageModal ? 'block' : 'none' }}>
+                    <Row type='flex' align='middle' justify='end' >
+                        <span style={{ padding: '0 10px', display: 'inline-block' }}>图片素材共有 {fileList.length} 张</span>
+                        <UploadImage {...uploadParams2} />
+                    </Row>
                 </Col>
             </Row>
             <Row style={{ width: '100%' }}>
-                <List
-                    className='listContainer'
-                    grid={{ gutter: 10, column: 4 }}
-                    dataSource={fileList}
-                    renderItem={item => (
-                        <List.Item>
-                            <Skeleton loading={false}>
-                                <Card
-                                    bodyStyle={{ padding: 10, cursor: isManageModal ? 'pointer' : '' }}
-                                    onClick={isManageModal ? handleImgsClick.bind(this, item) : undefined}
-                                >
-                                    <div
-                                        className={isManageModal ? 'material-item': ''}
-                                        onClick={!isManageModal ? handleImgsClick.bind(this, item) : undefined}
-                                        style={{ width: '100%', height: 156, overflow: 'hidden', backgroundColor: '#f4f4f4', marginBottom: 10 }}>
-                                        <img
-                                            alt={item.name}
-                                            src={item.url}
-                                            width='100%'
-                                            height='100%'
-                                            style={{ cursor: 'pointer', objectFit: 'contain' }}
-                                        />
-                                    </div>
-                                    <Row type='flex' justify='space-between' align='middle' style={{ width: '100%' }}>
-                                        <Col span={21}>
-                                            <p
+                <Spin spinning={loading}>
+                    <List
+                        className='listContainer'
+                        grid={{ gutter: 10, column: 4 }}
+                        dataSource={fileList}
+                        renderItem={item => (
+                            <List.Item>
+                                <Skeleton loading={false}>
+                                    <Card
+                                        bodyStyle={{ padding: 10, cursor: isManageModal ? 'pointer' : '' }}
+                                        onClick={isManageModal ? handleImgsClick.bind(this, item) : undefined}
+                                    >
+                                        <div
+                                            className={isManageModal ? 'material-item' : ''}
+                                            onClick={!isManageModal ? handleImgsClick.bind(this, item) : undefined}
+                                            style={{ width: '100%', height: 156, overflow: 'hidden', backgroundColor: '#f4f4f4', marginBottom: 10 }}>
+                                            <img
                                                 alt={item.name}
-                                                title={item.name}
-                                                style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', textAlign: 'center' }}>
-                                                {item.name}
-                                            </p>
-                                        </Col>
-                                        <Col span={3}>
-                                            <Icon
-                                                onClick={handleDelete.bind(null, item.uid)}
-                                                type="delete"
-                                                style={{ fontSize: 18, cursor: 'pointer', display: isManageModal ? 'none' : 'block' }}
-                                                color='#333' />
-                                        </Col>
-                                    </Row>
-                                </Card>
-                            </Skeleton>
-                        </List.Item>
-                    )}
-                />
+                                                src={item.url}
+                                                width='100%'
+                                                height='100%'
+                                                style={{ cursor: 'pointer', objectFit: 'contain' }}
+                                            />
+                                        </div>
+                                        <Row type='flex' justify='space-between' align='middle' style={{ width: '100%' }}>
+                                            <Col span={21}>
+                                                <p
+                                                    alt={item.name}
+                                                    title={item.name}
+                                                    style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', textAlign: 'center' }}>
+                                                    {item.name}
+                                                </p>
+                                            </Col>
+                                            <Col span={3}>
+                                                <Icon
+                                                    onClick={handleDelete.bind(null, item.uid)}
+                                                    type="delete"
+                                                    style={{ fontSize: 18, cursor: 'pointer', display: isManageModal ? 'none' : 'block' }}
+                                                    color='#333' />
+                                            </Col>
+                                        </Row>
+                                    </Card>
+                                </Skeleton>
+                            </List.Item>
+                        )}
+                    />
+                </Spin>
             </Row>
-            <Row style={{textAlign: 'right'}}>
+            <Row style={{ textAlign: 'right' }}>
                 <Pagination
                     onChange={handlePaginationChange}
                     pageSizeOptions={['10', '20', '30', '40']}
@@ -348,4 +383,3 @@ function MaterialPage() {
     )
 }
 
-export default MaterialPage

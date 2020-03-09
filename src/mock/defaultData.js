@@ -6,6 +6,10 @@ const tableData = [
         address: 'New York No. 1 Lake Park',
         created_at: '2020-02-01 17:19',
         tags: ['自制', '新闻'],
+        status: 0,
+        lylx: {tag: "原创", color: "#108eea"},
+        channel: {tag: "汽车", color: "blue"},
+        fbzt: {tag: "未发布", color: "#2db7f5"}
     },
     {
         key: '2',
@@ -13,6 +17,9 @@ const tableData = [
         address: 'London No. 1 Lake Park',
         created_at: '2020-01-21 17:19',
         tags: ['转载', '体育'],
+        lylx: {tag: "原创", color: "#108eea"},
+        channel: {tag: "汽车", color: "blue"},
+        fbzt: {tag: "未发布", color: "#2db7f5"}
     },
     {
         key: '3',
@@ -20,6 +27,9 @@ const tableData = [
         address: 'Sidney No. 1 Lake Park',
         created_at: '2020-01-23 17:19',
         tags: ['转载', '娱乐'],
+        lylx: {tag: "原创", color: "#108eea"},
+        channel: {tag: "汽车", color: "blue"},
+        fbzt: {tag: "未发布", color: "#2db7f5"}
     },
 ];
 

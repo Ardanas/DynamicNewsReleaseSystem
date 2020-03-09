@@ -1,4 +1,7 @@
 const config = {
+    frontendUrl: 'http://localhost:3000',
+    backendUrl: 'http://localhost:3333',
+    uid: 'as34dindia4sdaa34dsc',
     relesePage: {
         mdTypeList: [{
             id: '1',
@@ -38,12 +41,7 @@ const config = {
         }]
     },
     fileManagePage: {
-        color: {
-            'f50': ['待发布', ''],
-            '2db7f5': ['新闻'],
-            '87d068': [],
-            '108ee9': []
-        }
+        
     },
     editorPage: {
         editorConfig: {
