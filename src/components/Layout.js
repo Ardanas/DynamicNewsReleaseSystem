@@ -1,23 +1,18 @@
 import React, { useState } from 'react';
-import { Layout, Icon, Row, Col } from 'antd';
+import { Layout, Row, Col, Icon } from 'antd';
+import { BrowserRouter as Router, Link, Route, Switch, Redirect } from 'react-router-dom'
 import HomeNav from './HomeNav'
 import HomeHeader from './HomeHeader'
+import FileListPage from '../pages/FileListPage'
 import menuRouteConfig from '../common/menuRoute'
 import menuInfo from '../common/menu'
-import { BrowserRouter as Router, Link, Route, Switch, Redirect } from 'react-router-dom'
 const { Sider, Content } = Layout;
 const { redirectPath } = menuInfo
 
-const FileList = () => {
-    return (
-        <div className="">file list </div>
-    )
-}
 
-
-function HomeLayout() {
+function HomeLayout({ location }) {
     const [collapsed, setCollapsed] = useState(false);
-    const onHeaderClick = (data) => {
+    const onHeaderClick = () => {
         setCollapsed(!collapsed)
 
     }
@@ -25,20 +20,21 @@ function HomeLayout() {
         <Router>
             <Layout >
                 <Sider trigger={null} collapsible collapsed={collapsed} style={{ background: '#fff' }}>
-                    <div className="logo" />
-                    <Row style={{ textAlign: 'center' }}>
-                        <Col span={12}>
-                            <Link to='/nav'>导航</Link>
-                        </Col>
-                        <Col span={12}>
-                            <Link to='/fileList'>文件</Link>
-                        </Col>
-                    </Row>
+                    <div className="logo">
+                        <Link to={'/nav/home'} className='logo-item'>
+                            {
+                                collapsed ? <Icon type="slack-circle" theme="filled" style={{ color: '#1890ff', fontSize: 40 }} /> : <>
+                                    <span className='logo-blue'>L</span>
+                                    <span className='logo-yellow'>O</span>
+                                    <span className='logo-orange'>G</span>
+                                    <span className='logo-pink'>O</span>
+                                </>
+                            }
+                        </Link>
+                    </div>
                     <Switch>
-
                         <Route path='/nav' component={HomeNav} />
-                        <Route path='/fileList' component={FileList} />
-
+                        <Route path='/fileList/:id' component={FileListPage} />
                     </Switch>
                     <Redirect path='/nav' to={redirectPath} />
                 </Sider>
@@ -47,14 +43,14 @@ function HomeLayout() {
                     <Content
                         style={{
                             padding: 24,
-                            background: '#f7f7f7',
+                            background: '#fff',
                             minHeight: 280,
+                            userSelect: 'none'
                         }}
                     >
                         <Switch>
                             {
                                 menuRouteConfig.map((item, index) => {
-                                    console.log(item)
                                     return (
                                         <Route
                                             key={index}
@@ -66,7 +62,6 @@ function HomeLayout() {
                             }
                         </Switch>
                     </Content>
-
                 </Layout>
             </Layout>
         </Router>

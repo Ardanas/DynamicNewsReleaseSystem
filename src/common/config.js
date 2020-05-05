@@ -2,6 +2,39 @@ const config = {
     frontendUrl: 'http://localhost:3000',
     backendUrl: 'http://localhost:3333',
     uid: 'as34dindia4sdaa34dsc',
+    channelList: [
+        {
+            id: '1',
+            key: 'a',
+            value: '新闻',
+        },
+        {
+            id: '2',
+            key: 'b',
+            value: '娱乐'
+        },
+        {
+            id: '3',
+            key: 'c',
+            value: '汽车'
+        },
+        {
+            id: '4',
+            key: 'd',
+            value: '军事'
+        },
+        {
+            id: '5',
+            key: 'e',
+            value: '美食'
+        },
+        {
+            id: '6',
+            key: 'f',
+            value: '财经'
+        }
+
+    ],
     relesePage: {
         mdTypeList: [{
             id: '1',
@@ -41,7 +74,7 @@ const config = {
         }]
     },
     fileManagePage: {
-        
+
     },
     editorPage: {
         editorConfig: {

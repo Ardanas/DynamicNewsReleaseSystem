@@ -1,28 +1,41 @@
-import React, { useState, useRef } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { Row, Col } from 'antd'
 
 function TitleInput({
+    onBlur = null,
     onChange = null,
     placeholder = '',
     maxLength = 50,
     compClass = '',
-    defaultHeigt = 44
+    defaultHeigt = 44,
+    defaultValue = ''
 }) {
-    const [inputValue, setInputValue] = useState('')
+    //console.log(defaultValue==='')
     const titleInputRef = useRef()
-    const handleChange = (e) => {
-        e.persist();
-        setInputValue(e.target.value)
+    //const [inputValue, setInputValue] = useState(defaultValue)
+    const [isChange, setIsChange] = useState(false)
+    useEffect(() => {
+        console.log(defaultValue)
+        console.log(titleInputRef.current.value)
+        titleInputRef.current.value = defaultValue
+        autoScrollHeight()
+    }, [defaultValue !== ''])
+    const autoScrollHeight = () => {
         titleInputRef.current.style.height = isNaN(defaultHeigt) ? defaultHeigt : `${defaultHeigt}px`
         if (titleInputRef.current.scrollHeight >= titleInputRef.current.offsetHeight) {
             titleInputRef.current.style.height = titleInputRef.current.scrollHeight + 'px'
         }
     }
-    const handleBlur = (e) => {
-        e.persist();
-        console.log(e.target.value)
+    const handleChange = (e) => {
+        setIsChange(true)
+        autoScrollHeight()
         onChange && onChange(e.target.value)
     }
+    const handleBlur = (e) => {
+        //console.log(e.target.value)
+        onBlur && onBlur(e.target.value)
+    }
+    const length = (!isChange ? defaultValue : titleInputRef.current.value).trim().length
     return (
         <Row type='flex'>
             <Col span={22} style={{ display: 'flex', alignItems: 'center' }}>
@@ -31,13 +44,13 @@ function TitleInput({
                     ref={titleInputRef}
                     maxLength={maxLength}
                     placeholder={placeholder}
-                    value={inputValue}
-                    onChange={handleChange}
+                    defaultValue={defaultValue}
+                    onChange={(e) => handleChange(e)}
                     onBlur={(e) => handleBlur(e)}
                 />
             </Col>
             <Col span={2}>
-                <span className='input-hit-word-sytle'>{`(${inputValue.trim().length}/${maxLength})`}</span>
+                <span className='input-hit-word-sytle'>{`(${length}/${maxLength})`}</span>
             </Col>
 
         </Row>

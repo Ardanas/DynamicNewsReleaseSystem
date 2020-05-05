@@ -1,0 +1,128 @@
+.d-flex{
+    display: flex;
+}
+.jc-center{
+    justify-content: center;
+}
+.ai-center{
+    align-items: center;
+}
+.flex-1{
+    flex: 1;
+}
+.text-center{
+    text-align: center;
+}
+.text-right{
+    text-align: right;
+}
+.pointer{
+    cursor: pointer;
+}
+
+.w-100{
+    width: 100%;
+}
+
+.h-100{
+    height: 100%;
+}
+
+.bg-white{
+    background-color: #fff;
+}
+
+.br-4{
+    border-radius: 4px;
+}
+.m-10{
+    margin: 10px;
+}
+.mt-10{
+    margin-top: 10px;
+}
+.ml-10{
+    margin-left: 10px;
+}
+.mb-10{
+    margin-bottom: 10px;
+}
+.mb-0{
+    margin-bottom: 0px;
+}
+.mb-20{
+    margin-bottom: 20px;
+}
+.mt-20{
+    margin-top: 20px;
+}
+.mt-30{
+    margin-top: 30px;
+}
+.mx-10{
+    margin: 0 10px;
+}
+.my-10{
+    margin: 10px 0;
+}
+.p-10{
+    padding: 10px;
+}
+.px-10{
+    padding: 0 10px;
+}
+.py-10{
+    padding: 10px 0;
+}
+
+.fs-14{
+    font-size: 14px;
+}
+
+.fs-16{
+    font-size: 16px;
+}
+
+.fs-18{
+    font-size: 18px;
+}
+.bold{
+    font-weight: bold;
+}
+.o-hidden{
+    overflow: hidden;
+}
+
+.text-ellipsis{
+    text-overflow: ellipsis;
+}
+.one-text-ellipsis{
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.img-contain{
+    object-fit: contain;
+}
+
+.selected-item{
+    background-color: #e6f7ff;
+}
+.selected-item .draft-item-title{
+    color: #1890ff;
+    background-color: #e6f7ff;
+}
+.list-hover:hover .draft-item-title{
+    color: #1890ff;
+}
+.hover:hover{
+    color: #1890ff;
+}
+
+.drag{
+    -webkit-app-region: drag;
+}
+.no-drag{
+    -webkit-app-region: no-drag;
+}

@@ -1,12 +1,18 @@
 import React, { useState, useRef } from 'react'
 import { Table, Divider, Icon, Popconfirm, Input, Button, Row, Spin, message } from 'antd';
 import Highlighter from 'react-highlight-words';
+import { Link } from 'react-router-dom'
 
-
-function TableComponent({ columns = [], tableData = [], loading = false, deleteloading = false, pageSize = 5}) {
+function TableComponent({ columns = [], tableData = [], loading = false, deleteloading = false, pageSize = 5, onPreview = null }) {
     const [searchText, setSearchText] = useState('')
     const [searchedColumn, setSearchedColumn] = useState('')
     const inputRef = useRef(null)
+    const handlePreview = (e, record) => {
+        onPreview && onPreview(record)
+    }
+    const handleShowRender = (record, text) => {
+        return record.fbzt.value ? <a onClick={(e) => handlePreview(e, record)}>{text}</a> : <Link to={`/fileList/${record.systemid}`}>{text || '(无标题)'}</Link>
+    }
     const getColumnSearchProps = (dataIndex) => ({
         filterDropdown: ({ setSelectedKeys, selectedKeys, confirm, clearFilters }) => (
             <div style={{ padding: 8 }}>
@@ -45,7 +51,7 @@ function TableComponent({ columns = [], tableData = [], loading = false, deletel
                 setTimeout(() => inputRef.current.select());
             }
         },
-        render: text =>
+        render: (text, record) =>
             searchedColumn === dataIndex ? (
                 <Highlighter
                     className='highlight-warpper'
@@ -54,8 +60,9 @@ function TableComponent({ columns = [], tableData = [], loading = false, deletel
                     autoEscape
                     textToHighlight={text.toString()}
                 />
-            ) : (<a>{text}</a>)
+            ) : handleShowRender(record, text)
     })
+
 
     const tableColumns = columns.map(item => {
         if (item.isGetColumnSearchProps) {
@@ -95,13 +102,15 @@ function TableComponent({ columns = [], tableData = [], loading = false, deletel
         )
     }
     return (
-        <Table
-            loading={deleteloading}
-            rowKey={record => record.systemid}
-            columns={tableColumns}
-            pagination={paginationOption}
-            dataSource={tableData}
-        />
+        <>
+            <Table
+                loading={deleteloading}
+                rowKey={record => record.systemid}
+                columns={tableColumns}
+                pagination={paginationOption}
+                dataSource={tableData}
+            />
+        </>
     )
 }
 

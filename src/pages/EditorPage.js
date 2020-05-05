@@ -1,12 +1,13 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect } from 'react'
+import { Link } from 'react-router-dom'
+import { withRouter } from 'react-router'
 import BraftEditor from 'braft-editor'
-import { Button, Drawer, message, Input, Icon, Form, Radio, Checkbox, Tooltip, DatePicker, Row, Col, Avatar, Divider } from 'antd'
-import ColorPicker from 'braft-extensions/dist/color-picker'
+import { Button, Drawer, message, Input, Icon, Form, Radio, Checkbox, Tooltip, DatePicker, Row, Col, BackTop, Alert, Spin } from 'antd'
 import { ContentUtils } from 'braft-utils'
 import useForm from 'rc-form-hooks';
 import moment from 'moment';
 import locale from 'antd/lib/date-picker/locale/zh_CN';
-import { useRequest } from '@umijs/hooks';
+import { useRequest, usePrevious } from '@umijs/hooks';
 import 'braft-editor/dist/index.css'
 import 'braft-editor/dist/output.css'
 import defaultConfig from '../common/config'
@@ -14,81 +15,131 @@ import RadioList from '../components/RadioList'
 import TitleInput from '../components/TitleInput'
 import EditorModal from '../components/EditorModal'
 import UploadImage from '../components/UploadImage'
+import OutputPreview from '../components/OutputPreview'
 import api from '../utils/api';
 const Store = window.require('electron-store');
+const { dialog } = window.require('electron').remote
+const iconv = window.require('iconv-lite')
+const fs = window.require('fs')
+const mammoth = window.require('mammoth')
+const path = window.require('path')
 const store = new Store()
-BraftEditor.use(ColorPicker({ theme: 'light' }))
-const { editorPage: { editorConfig, formConfig }, uid } = defaultConfig
-const { TextArea } = Input
-const { addMaterialList, addNews } = api
-//点用户进来时候，路由 分配文章id  
-//刚来的时候，根据id去网络请求数据，有则显示  GET 请求
-function EditorPage() {
-    const { getFieldDecorator, validateFields, setFieldsValue, errors, values } = useForm();
+const { editorPage: { editorConfig, formConfig } } = defaultConfig
+const { addMaterialList, addNews, getNewsById, updateNews, saveNews } = api
+const DateFormat = 'YYYY-MM-DD HH:mm:ss'
 
-    const [editorState, setEditorState] = useState(BraftEditor.createEditorState(null))
+
+function EditorPage({ history, location, match }) {
+    const { getFieldDecorator, validateFields, setFieldsValue, errors, values, resetFields } = useForm();
     const [visible, setVisible] = useState(false)
-    const [outputContent, setOutputContent] = useState('')
-    const [editorTimeout, setEditorTimeout] = useState(0)
-    const [titleInputValue, setTitleInputValue] = useState('')
-    const [introInputValue, setIntroInputValue] = useState('')
-    const [mdTypeValue, setMdTypeValue] = useState(0)
-    const [mdIsScheduledReleaseValue, setMdIsScheduledReleaseValue] = useState(0)
-    const { run, loading } = useRequest(addNews, {
+    //const [outputContent, setOutputContent] = useState('')
+    const [editorTimeout, setEditorTimeout] = useState(null)
+    const [valuesTimeout, setValuesTimeout] = useState(null)
+    const [editorInstance, setEditorInstance] = useState(null)
+    const [previewValue, setPreviewValue] = useState({})
+    const [systemid, setSystemid] = useState('')
+    const [editorContent, setEditorContent] = useState('')
+    //const editorContentPrevious = usePrevious(editorContent)
+
+    const handleRequestError = () => {
+        message.error('服务器错误, 请联系管理员')
+    }
+    const { run: addRun } = useRequest(addNews, {
+        manual: true,
+        onSuccess(res, params) {
+            console.log(params)
+            if (res.sign == '1') {
+                setSystemid(res.datas.id)
+            }
+        },
+        onError: handleRequestError
+    });
+    const { run: updateRun } = useRequest(updateNews, {
+        manual: true,
+        onSuccess(res, params) {
+            if (res.sign == '1') {
+                //保存草稿成功 或者 发布文章
+                console.log(params)
+                const { fbzt = 0 } = params[0]
+                !fbzt ? console.log('save draft') : history.push('/nav/success')
+            }
+        },
+        onError: handleRequestError
+    })
+    const { run: getRun, loading: getLoading } = useRequest(getNewsById, {
         manual: true,
         onSuccess: (result, params) => {
-            if (result.sign === '1') {
-                message.info('文章上传成功');
-                //清空表单
-            } else {
-                message.info('文章上传失败')
-            }
+            //初始化数据
+            const res = result.datas
+            //console.log(res)
+            setFieldsValue({
+                'mdTitle': res.title,
+                'mdIntroduction': res.jj,
+                'mdContent': res.content,
+                'mdCover': res.cover,
+                'mdType': res.lylx,
+                'mdIsReproduced': res.sfjzzz,
+                'mdReproducedSource': res.zzsm,
+                'mdChannel': res.channel,
+                'mdIsScheduledRelease': res.sfdsfb,
+                //'mdScheduledReleaseTime': res.sfdsfb ? moment(res.dsfbsj) : moment().add(4, 'hours'),
+                'mdScheduledReleaseTime': moment().add(4, 'hours'), //全部统一当下时间, 定时发布时间不保存之前的值
+                'systemid': res.systemid
+            })
+            setSystemid(res.systemid)
+            setEditorContent(res.contentfortext)
+            editorInstance.setValue(BraftEditor.createEditorState(res.content))
         }
-    });
-    //const titleRef = useRef(null)
-    //const introductionRef = useRef(null)
-    //let [selectedMaterialList, setSelectedMaterialList] = useState([])
-    let editorInstance = null
+    })
+
+    //const { run: saveRun, loading: saveLoading } = useRequest()
+
+
+
     useEffect(() => {
-        /*setFieldsValue({
-            "mdType": 1, //原创
-            "mdIsReproduced": false,
-            "mdIsScheduledRelease": false,
-            "mdChannel": 'a' //新闻
-        })*/
+        const { search = '', pathname } = location
+        const { path, params, url } = match
+        console.log(match)
+        console.log(pathname)
+        if (pathname === url) {
+            if (params.id !== 'create') {
+                //console.log('before', values)
+                resetFields()
+                getRun(params.id)
+            }
+            /*if (search !== '' && search.length !== 0) {
+                //const id = search.split('=')[1]
+                
+                const params = pathname.split('/').pop
+                if (params && params !== 'create') {
+                    getRun(params)
+                }
 
-    }, [])
-
+                //setIsUpdateModel(true)
+            }*/
+        } else {
+            history.push('/nav/404')
+        }
+        //setPrevValues(values)
+        //document.addEventListener('keydown', handleKeyEvent)
+        return () => {
+            setEditorTimeout(null)
+            setValuesTimeout(null)
+            //document.removeEventListener(handleKeyPress)
+        }
+    }, [match.params.id])
 
     const handleEditorChange = (data) => {
-        setEditorState(data)
-        handleSetFieldsValue('mdContent', data.toRAW())
-        //handleSetFieldsValue('mdContentFormat', data.toHTML())
-        //console.log("toHTML", editorState.toHTML())
-        //console.log("toText", editorState.toText())
-        store.set('materialEditorHtml', data.toHTML())
-        if (editorTimeout !== 0) {
-            clearTimeout(editorTimeout);
+        setEditorContent(data.toText())
+        console.log(editorContent === data.toText())
+        if (data.toText() !== editorContent) {
+            handleSaveDraft({ ...values })
         }
-        setEditorTimeout(setTimeout(() => {
-            console.log('save successful')
-
-        }, 6000))
-        //editorTimeout 最后设置 null
-
     }
     const submitContent = async () => {
         // 在编辑器获得焦点时按下ctrl+s会执行此方法
         // 编辑器内容提交到服务端之前，可直接调用editorState.toHTML()来获取HTML格式的内容
-        //const htmlContent = editorState.toHTML()
-        //const rawContent = editorState.toRAW()
-        //const textContent = editorState.toText()
 
-        //const result = await saveEditorContent(htmlContent)
-        /*console.log(htmlContent)
-        console.log(rawContent)
-        console.log(textContent)
-        console.log(textContent.length)*/
         message.info('保存成功')
 
     }
@@ -100,66 +151,90 @@ function EditorPage() {
             console.log(editorInstance.getValue().toHTML())
             setOutputContent(editorInstance.getValue().toHTML())
         })*/
+        const params = {
+            cover: values.mdCover,
+            title: values.mdTitle,
+            jj: values.mdIntroduction,
+            lylx: values.mdType,
+            sfjzzz: values.mdIsReproduced,
+            created_at: moment().format('MM-DD HH:mm:ss'),
+            zzsm: values.mdReproducedSource || null,
+            content: editorInstance.getValue().toHTML(),
+        }
         setVisible(true)
-        console.log(editorInstance.getValue().toHTML())
-        console.log(editorState.toHTML())
-        setOutputContent(editorInstance.getValue().toHTML())
+        setPreviewValue(params)
+
+        //console.log(editorInstance.getValue().toHTML())
+        //console.log(editorState.toHTML())
+        //setOutputContent(editorInstance.getValue().toHTML())
         //setOutputContent(editorState.toHTML())
 
     }
+
+
     const handleDrawerClose = () => {
         setVisible(false)
     }
 
-    const handleTitleInputChange = (key, value) => {
-        console.log(key, value)
-        key === 'mdTitle' ? setTitleInputValue(value) : setIntroInputValue(value)
-        handleSetFieldsValue(key, value)
+    const handleExcessParams = (data) => {
+        const editorState = editorInstance.getValue()
+        return {
+            ...data,
+            mdContent: editorState.toRAW(),
+            mdContentForHtml: editorState.toHTML(),
+            mdContentForText: editorState.toText(),
+            mdScheduledReleaseTime: data.mdScheduledReleaseTime ? data.mdScheduledReleaseTime.format(DateFormat) : '',
+            lastTime: moment().format(DateFormat)
+        }
     }
+
     const handleSubmit = (e) => {
         console.log(values)
-        //console.dir(titleRef.current)
         e.preventDefault();
         validateFields()
             .then(res => {
-                console.log({ uid, ...res })
-                run({
-                    ...res,
-                    uid,
-                    mdContentForHtml: values.content.toHTML(),
-                    mdContentForText: values.content.toText(),
-                    mdScheduledReleaseTime: res.mdScheduledReleaseTime ? res.mdScheduledReleaseTime.format('YYYY-MM-DD HH:mm') : ''
-                })
+                //console.log({ uid, ...res })
+                //console.log({ ...params, fbzt: 1, systemid })
+                const params = handleExcessParams(res)
+                //!isUpdateModel ? addRun(params) : updateRun({ ...params, systemid })
+                updateRun({ ...params, fbzt: 1, systemid })
             })
             .catch(err => {
                 console.log(err)
             });
-
     };
-    const handleChannelChange = e => {
-        //console.log(e)
-        const { value } = e.target;
-        handleSetFieldsValue("mdChannel", value)
-    }
-    const handleCheckboxChange = (name, callback, e) => {
-        //console.log(e)
-        const { checked } = e.target;
-        handleSetFieldsValue(name, Number(checked))
-        callback && callback(Number(checked))
-    }
-    const handleScheduledReleaseValue = (checked) => {
-        setMdIsScheduledReleaseValue(checked)
+
+    const handleSaveDraft = (data) => {
+        if (editorTimeout) {
+            clearTimeout(editorTimeout);
+        }
+        setEditorTimeout(setTimeout(() => {
+            data.mdType ? delete data.mdIsReproduced : delete data.mdReproducedSource
+            const params = handleExcessParams(data)
+            console.log(params)
+            systemid ? updateRun({ ...params, systemid }) : addRun(params)
+        }, 2000))
     }
 
     const handleSetFieldsValue = (key, value) => {
-        setFieldsValue({
-            [key]: value
-        })
+        if (valuesTimeout) {
+            clearTimeout(valuesTimeout);
+        }
+        setValuesTimeout(setTimeout(() => {
+            console.log("key", key)
+            setFieldsValue({
+                [key]: value
+            })
+            handleSaveDraft({ ...values, [key]: value })
+        }, 500))
     }
     const handleRadioChange = (e) => {
-        const { value } = e.target;
-        handleSetFieldsValue("mdType", value)
-        setMdTypeValue(value)
+        //const { value } = e.target;
+        handleSetFieldsValue("mdType", e.target.value)
+
+        e.target.value ? setFieldsValue({ mdIsReproduced: 0 }) : setFieldsValue({ mdReproducedSource: '' })
+        //e.target.value ? delete values.mdIsReproduced : delete values.mdReproducedSource
+        //setMdTypeValue(value)
     }
 
     const disabledDate = (current) => {
@@ -167,18 +242,26 @@ function EditorPage() {
     }
 
     const handleMdTypeComponent = (value) => {
-        return value === 0 ? getFieldDecorator('mdIsReproduced', { initialValue: 0 })(
+        return !value ? getFieldDecorator('mdIsReproduced', { initialValue: 0 })(
             <>
-                <Checkbox onChange={handleCheckboxChange.bind(this, 'mdIsReproduced', null)}>未经作者允许, 禁止转载 </Checkbox>
+                <Checkbox
+                    checked={Boolean(values.mdIsReproduced)}
+                    onChange={(e) => handleSetFieldsValue('mdIsReproduced', Number(e.target.checked))}>
+                    未经作者允许, 禁止转载
+                </Checkbox>
                 <Tooltip title="显示在新闻简介中">
                     <Icon type="exclamation-circle" style={{ fontSize: '18px', color: '#08c' }} />
                 </Tooltip>
             </>
         ) : getFieldDecorator('mdReproducedSource', {
-            rules: [{ required: true, message: '请填写信息!' }],
+            //rules: [{ required: true, message: '请填写信息!' }],
+            initialValue: ''
         })(
             <Input
-                placeholder="转载类型请注明来源, 来源会显示新闻的简介中" />
+                placeholder="转载类型请注明来源"
+                value={values.mdReproducedSource}
+                onChange={(e) => { handleSetFieldsValue('mdReproducedSource', e.target.value) }}
+            />
         )
     }
     const handleUpload = (params) => {
@@ -186,7 +269,6 @@ function EditorPage() {
         const { success, error, file, progress, id } = params
         let form = new FormData();
         form.set('file', file);
-        form.set('uid', uid)
         addMaterialList(form).then(data => {
             console.log(data)
             const { sign, datas: { originalFilename, path } } = data
@@ -198,7 +280,7 @@ function EditorPage() {
                     meta: {
                         id,
                         title: originalFilename,
-                        alt: originalFilename
+                        alt: '加载失败'
                     }
                 })
             }
@@ -216,22 +298,59 @@ function EditorPage() {
     }
     const handleModalClick = () => {
         const selectedMaterialList = store.get('selectedMaterialList') // 选择的图片对象 
-        const editorStateFormModal = BraftEditor.createEditorState(store.get('materialEditorHtml')) //旧的state
-
         if (selectedMaterialList.length !== 0) {
-
+            const editorStateFormModal = editorInstance.getValue()
             const newEditorState = ContentUtils.insertMedias(editorStateFormModal, selectedMaterialList)
-            setEditorState(newEditorState)
+            editorInstance.setValue(newEditorState)
             store.set('selectedMaterialList', [])//添加成功，重置
-            store.get('materialEditorHtml', '')
         }
+    }
+    const handleSaveImportFiles = (html) => {
+        const editorValue = editorInstance.getValue()
+        const template = editorValue.toText() !== '' ? `${editorValue.toHTML()} <br/><br/> ${html}` : html
+        editorInstance.setValue(BraftEditor.createEditorState(template))
+    }
+    const handleImportFiles = () => {
+        dialog.showOpenDialog({
+            title: '选择文件',
+            filters: [
+                { name: 'files', extensions: ['txt', 'doc', 'docx'] }
+            ],
+            properties: ['openFile']
+        }).then(files => {
+            console.log(files)
+            const { filePaths, canceled } = files
+            if (!canceled) {
+                const filetype = path.extname(filePaths[0])
+                if (filetype === '.doc' || filetype === '.docx') {
+                    mammoth.convertToHtml({ path: filePaths[0] }, {
+                        styleMap: [
+                            "p[style-name='Section Title'] => h1:fresh",
+                            "p[style-name='Subsection Title'] => h2:fresh",
+                            'i => strong', 'u => em', 'b => em', "strike => del", "comment-reference => sup"
+                        ]
+                    }).then(function (result) {
+                        console.log(result)
+                        const text = result.value; // The raw text 
+                        handleSaveImportFiles(text)
+                    }).done();
+                } else {
+                    fs.readFile(filePaths[0], (err, data) => {
+                        if (err) throw err;
+                        const text = iconv.decode(data, 'gbk')
+                        const ipHtml = text.toString().replace(/(\r)*\n/g, "<br/>").replace(/\s/g, "&nbsp;") //保留空格和换行
+                        handleSaveImportFiles(ipHtml)
+                    })
+                }
+            }
+        })
     }
     const extendControls = [
         'separator',
         {
             key: 'editor-modal',
             type: 'modal',
-            title: '这是一个自定义的下拉组件', // 指定鼠标悬停提示文案
+            title: '选择素材库资源', // 指定鼠标悬停提示文案
             className: 'editor-modal-btn', // 指定触发按钮的样式名
             html: null, // 指定在按钮中渲染的html字符串
             text: '素材库', // 指定按钮文字，此处可传入jsx，若已指定html，则text不会显示    
@@ -240,8 +359,8 @@ function EditorPage() {
                 id: 'editor-modal', // 必选属性，传入一个唯一字符串即可
                 title: '素材库', // 指定弹窗组件的顶部标题
                 className: 'editor-modal', // 指定弹窗组件样式名
-                width: 800, // 指定弹窗组件的宽度
-                height: 500, // 指定弹窗组件的高度
+                width: '70%', // 指定弹窗组件的宽度
+                //height: 600, // 指定弹窗组件的高度
                 showFooter: true, // 指定是否显示弹窗组件底栏
                 showCancel: true, // 指定是否显示取消按钮
                 showConfirm: true, // 指定是否显示确认按钮
@@ -259,12 +378,27 @@ function EditorPage() {
                 onBlur: () => { }, // 指定蒙层被点击时的回调函数
                 children: <EditorModal />, // 指定弹窗组件的内容组件
             }
+        },
+        'separator',
+        {
+            key: 'my-button', // 控件唯一标识，必传
+            type: 'button',
+            title: '导入文件到编辑器中', // 指定鼠标悬停提示文案
+            className: 'my-button', // 指定按钮的样式名
+            html: '', // 指定在按钮中渲染的html字符串
+            text: '导入', // 指定按钮文字，此处可传入jsx，若已指定html，则text不会显示
+            onClick: () => {
+                handleImportFiles()
+            },
         }
     ]
-
-
     return (
-        <>
+        <Spin spinning={getLoading}>
+            <BackTop style={{ right: 25, bottom: 25 }}>
+                <div className="back-top-inner">
+                    <Icon type="arrow-up" />
+                </div>
+            </BackTop>
             <Form onSubmit={handleSubmit}>
                 <Form.Item key='mdTitle' style={{ marginBottom: 0, backgroundColor: '#fff' }}>
                     {getFieldDecorator('mdTitle', {
@@ -274,8 +408,9 @@ function EditorPage() {
                         <TitleInput
                             compClass='title-input-style'
                             defaultHeigt={44}
-                            onChange={(value) => handleTitleInputChange('mdTitle', value)}
+                            onChange={(value) => handleSetFieldsValue('mdTitle', value)}
                             placeholder='请输入文章标题'
+                            defaultValue={values.mdTitle}
                         />
                     )}
                 </Form.Item>
@@ -290,9 +425,10 @@ function EditorPage() {
                         <TitleInput
                             compClass='intro-input-style'
                             defaultHeigt={40}
-                            onChange={(value) => handleTitleInputChange('mdIntroduction', value)}
+                            onChange={(value) => handleSetFieldsValue('mdIntroduction', value)}
                             placeholder='简介(选填)'
                             maxLength={44}
+                            defaultValue={values.mdIntroduction}
                         />
                     )}
                 </Form.Item>
@@ -304,21 +440,33 @@ function EditorPage() {
                     })(
                         <BraftEditor
                             {...editorConfig}
-                            ref={instance => editorInstance = instance}
-                            value={editorState}
+                            contentClassName='braft-editor-content'
+                            ref={instance => setEditorInstance(instance)}
+                            //value={editorState}
                             media={mediaParams}
                             extendControls={extendControls}
                             onChange={handleEditorChange}
                             onSave={submitContent}
-                            contentStyle={{ height: 500 }}
+                            contentStyle={{ height: 450, whiteSpace: 'pre' }}
+                            draftProps={{
+                                handleDroppedFiles: function (selection, files) {
+                                    //console.log(selection.toText())
+                                    console.log('asdasd', files)
+                                }
+                            }}
                         />
                     )}
                 </Form.Item>
 
 
+
                 <Form.Item label="封面" key='mdCover'>
                     {getFieldDecorator('mdCover', { initialValue: '' })(
-                        <UploadImage onChange={(data) => handleSetFieldsValue('mdCover', data.path)} />
+                        <UploadImage
+                            className='image-uploader'
+                            defaultImageUrl={values.mdCover}
+                            onChange={(data) => handleSetFieldsValue('mdCover', data.path)}
+                        />
                     )}
                 </Form.Item>
 
@@ -327,15 +475,13 @@ function EditorPage() {
                         initialValue: 0
                     })(
                         <>
-                            <Radio.Group onChange={handleRadioChange} value={mdTypeValue}>
+                            <Radio.Group onChange={handleRadioChange} value={values.mdType}>
                                 <Radio value={0}>原创</Radio>
                                 <Radio value={1}>转载</Radio>
                             </Radio.Group>
-                            <Form.Item key='mdTypeComponent'>
-                                {
-                                    handleMdTypeComponent(mdTypeValue)
-                                }
-                            </Form.Item>
+                            <Row>
+                                {handleMdTypeComponent(values.mdType)}
+                            </Row>
                         </>
                     )}
                 </Form.Item>
@@ -347,30 +493,9 @@ function EditorPage() {
                         <>
                             <RadioList
                                 dataLists={formConfig.channelList}
-                                defaultRadioValue='a'
-                                onChange={handleChannelChange}
+                                defaultRadioValue={values.mdChannel}
+                                onChange={(e) => handleSetFieldsValue("mdChannel", e.target.value)}
                             />
-
-                            {/*
-                            <Radio.Group
-                                defaultValue='a'
-                                buttonStyle='solid'
-                                onChange={handleRadioChange}
-                            >
-                                {formConfig.channelList.map((item, index) => {
-                                    return (
-
-                                        <Radio.Button
-                                            key={item.id}
-                                            value={item.key}
-                                        >
-                                            {item.value}
-                                        </Radio.Button>
-
-                                    )
-                                })}
-                            </Radio.Group>
-                            */}
                         </>
                     )}
                 </Form.Item>
@@ -380,9 +505,12 @@ function EditorPage() {
                 <Form.Item key='mdIsScheduledRelease'>
                     {getFieldDecorator('mdIsScheduledRelease', { initialValue: 0 })(
                         <>
-                            <Checkbox onChange={handleCheckboxChange.bind(this, 'mdIsScheduledRelease', handleScheduledReleaseValue)}>定时发布</Checkbox>
+                            <Checkbox
+                                checked={Boolean(values.mdIsScheduledRelease)}
+                                onChange={(e) => handleSetFieldsValue('mdIsScheduledRelease', Number(e.target.checked))}
+                            >定时发布</Checkbox>
 
-                            {mdIsScheduledReleaseValue !== 0 &&
+                            {values.mdIsScheduledRelease ?
                                 getFieldDecorator('mdScheduledReleaseTime', {
                                     initialValue: moment().add(4, 'hours')
                                 })(
@@ -393,8 +521,7 @@ function EditorPage() {
                                         locale={locale}
                                         format="YYYY-MM-DD HH:mm"
                                         disabledDate={disabledDate} />
-                                )
-
+                                ) : null
                             }
                             <Tooltip title="(默认是4小时以后,以北京时间为准, ≥4小时, <15天)">
                                 <Icon type="exclamation-circle" style={{ fontSize: '18px', color: '#08c', marginLeft: '10px' }} />
@@ -404,15 +531,31 @@ function EditorPage() {
                     )}
                 </Form.Item>
                 <Form.Item key='submit' style={{ textAlign: 'center' }}>
-                    <Button type="primary" htmlType="submit" loading={loading}>
+                    <Button type="primary" htmlType="submit">
                         提交稿件
                     </Button>
-                    <Button type="primary" onMouseDown={handlePreview}>
+                    <Button type="primary" onMouseDown={handlePreview} style={{ margin: '0 20px' }} >
                         预览
                     </Button>
                     <span style={{ fontSize: 14, color: '#ccc' }}>(实际效果以预览为准)</span>
+
+
                 </Form.Item>
             </Form>
+            <Row>
+                <Alert
+                    message="温馨提示"
+                    description={
+                        <>
+                            <p>1. 不支持复制本地图片、但支持复制网络图片和直接拖动本地图片</p>
+                            <p>2. 首行缩进用Tab, 用空格无效</p>
+                        </>
+                    }
+                    type="warning"
+                    closable
+                    showIcon
+                />
+            </Row>
 
 
             <Drawer
@@ -422,54 +565,12 @@ function EditorPage() {
                 visible={visible}
                 bodyStyle={{ padding: '0 0 80px 0' }}
             >
-                <div className='output-cover'>
-                    <img
-                        src="http://localhost:3333/imgs/bABxpEKWHaVGjkvCdacBl7hf.jpg"
-                        alt="加载失败"
-                    />
-                </div>
-                <div style={{padding: '0 24px'}}>
-                    <div className='input-style-base title-input-style output-title'>{titleInputValue}</div>
-                    <Row className='author-info' type='flex' align='center' justify='space-between'>
-                        <Col style={{ display: 'flex', alignItems: 'center' }}>
-                            <Avatar src="http://localhost:3333/imgs/2QPzVkPUFQuYzqUrsTlDXc1M.jpg" size='large' />
-                            <span style={{ paddingLeft: 10 }}>Ardans</span>
-                            <Divider type="vertical" />
-                            <span>2020-03-09 15:21</span>
-                            <Divider type="vertical" />
-                            {
-                                !mdTypeValue ?
-                                    (
-                                        <div>
-                                            <Icon type="stop" rotate={90} style={{ color: '#fd676f', fontWeight: 'blod' }} />
-                                            <span style={{ paddingLeft: 10 }}>未经作者允许, 禁止转载</span>
-                                        </div>
-                                    ) : (<span>转载于: {values.mdReproducedSource}</span>)
-                            }
-                        </Col>
-                        <Col style={{ margin: 'auto 0' }}>
-                            <span>阅读量50+</span>
-                        </Col>
-
-                    </Row>
-                    <Row className='output-intro' >
-                        <p>{introInputValue}</p>
-                    </Row>
-                    <div className="braft-output-content output-content" dangerouslySetInnerHTML={{ __html: outputContent }}></div>
-                </div>
-
+                <OutputPreview {...previewValue} />
             </Drawer>
-            <p>1. 不支持复制本地图片、但支持复制网络图片和直接拖动本地图片</p>
-            <p>2. 首行缩进用Tab, 用空格无效</p>
-
-
-
-
-
-        </>
+        </Spin>
     )
 
 }
 
 
-export default EditorPage;
+export default withRouter(EditorPage);

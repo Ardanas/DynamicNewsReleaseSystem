@@ -1,8 +1,8 @@
 import React, { useState, useRef } from 'react'
-import { List, Skeleton, Row, Popconfirm, Spin } from 'antd'
+import { List, Skeleton, Row, Col, Popconfirm, Spin } from 'antd'
 import InfiniteScroll from 'react-infinite-scroller';
 import moment from 'moment';
-
+import { Link } from 'react-router-dom'
 let data = [
     {
         id: 1,
@@ -102,15 +102,15 @@ function DraftPage({ tableData = [], loading = false, onChange = null }) {
             }
         }, 3000);*/
     }
-    if (loading) {
+    /*if (loading) {
         return (
             <Row type='flex' justify='center'>
                 <Spin />
             </Row>
         )
-    }
+    }*/
     return (
-        <div style={{ height: 400, overflow: 'auto' }} className='infinite-container'>
+        <div style={{ height: 400, overflowY: 'auto', overflowX: 'hidden' }} className='infinite-container'>
             <InfiniteScroll
                 initialLoad={false}
                 pageStart={0}
@@ -119,44 +119,53 @@ function DraftPage({ tableData = [], loading = false, onChange = null }) {
                 useWindow={false}
             >
                 <List
+                    className='w-100 draft-container'
                     itemLayout="horizontal"
                     dataSource={tableData}
                     renderItem={item => (
-                        <List.Item
-                            actions={
-                                [<a key="list-loadmore-edit">编辑</a>,
-                                <Popconfirm
-                                    title="删除后无法恢复，是否确定删除?"
-                                    onConfirm={() => handleDelete(item.systemid)}
-                                    okText="确定"
-                                    cancelText="取消"
-                                >
-                                    <a key="list-loadmore-more">删除</a>
-                                </Popconfirm>
-                                ]
-                            }>
-                            <List.Item.Meta
-                                avatar={
+                        <Skeleton loading={loading} active avatar>
+                            <List.Item>
+                                <List.Item.Meta
+                                    avatar={
+                                        item.cover ? (
+                                            <div style={{ width: '156px', height: 110 }}>
+                                                <img src={item.cover} className='image-contain' />
+                                            </div>
 
-                                    item.cover ? (
-                                        <div style={{ width: '156px', height: 110 }}>
-                                            <img src={item.cover} className='image-contain' />
+                                        ) : null
+                                    }
+                                    title={
+                                        <div className='draft-item-title'>
+                                            <Link to={`/fileList/${item.systemid}`} style={{ color: '#444' }}>{item.title || '(无标题)'}</Link>
                                         </div>
+                                    }
+                                    description={
+                                        <Row className='o-hidden'>
+                                            <Col className='draft-item-content-container' style={{ minHeight: item.cover ? 66 : null }}>
+                                                <span className='draft-item-content'></span>
+                                                <span dangerouslySetInnerHTML={{ __html: item.contentfortext ? String(item.contentfortext).replace(/\s*/g, "") : '' }}></span>
+                                            </Col>
+                                            <Col style={{ color: 'grey' }}>
+                                                <span><Link key="list-loadmore-edit" to={`/fileList/${item.systemid}`}>编辑</Link></span>
+                                                <span className='px-10'>
+                                                    <Popconfirm
+                                                        title="删除后无法恢复，是否确定删除?"
+                                                        onConfirm={() => handleDelete(item.systemid)}
+                                                        okText="确定"
+                                                        cancelText="取消"
+                                                    >
+                                                        <a key="list-loadmore-more">删除</a>
+                                                    </Popconfirm>
+                                                </span>
 
-                                    ) : null
-                                }
-                                title={<a href="#" className='draft-item-title'>{item.title ? item.title : '无标题'}</a>}
-                                description={
-                                    <Row style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                                        <p className='draft-item-content-container' style={{ minHeight: item.cover ? 66 : null }}>
-                                            <span className='draft-item-content'></span>
-                                            <span dangerouslySetInnerHTML={{ __html: item.contentfortext ? String(item.contentfortext).replace(/\s*/g, "") : '' }}></span>
-                                        </p>
-                                        <p style={{ color: '#646464' }}>{moment(item.last_time).format('YYYY-MM-DD HH:mm:ss')}</p>
-                                    </Row>
-                                }
-                            />
-                        </List.Item >
+                                                <span>{moment(item.last_time).fromNow()}</span>
+
+                                            </Col>
+                                        </Row>
+                                    }
+                                />
+                            </List.Item >
+                        </Skeleton>
                     )}
                 />
 

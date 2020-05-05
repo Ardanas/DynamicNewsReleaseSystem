@@ -6,18 +6,13 @@ const { SubMenu } = Menu;
 const { menuConfig } = menuInfo
 
 
-function HomeNav({ match }) {
-
+function HomeNav({ match, location }) {
     const handleMenuConfig = (menuData) => {
         let submenuIndex = 0; //累计的每一项展开菜单索引
         let menu = [];
-        let defaultSelectedKeys = [];
         const createItem = (menuData, el) => {
             for (let i = 0; i < menuData.length; i++) {
                 const item = menuData[i];
-                if (item.defaultSelected) {
-                    defaultSelectedKeys.push(item.path)
-                }
                 if (item.children) {  //如果有子级菜单
                     let children = [];
                     createItem(item.children, children);
@@ -39,7 +34,7 @@ function HomeNav({ match }) {
                     //itemIndex++;
                     el.push(
                         <Menu.Item key={item.path}>
-                            <Link to={`${match.url}/${item.path}`} >
+                            <Link to={`${item.path}`} >
                                 {item.icon ? <Icon type={item.icon} /> : null}
                                 <span>{item.title}</span>
                             </Link>
@@ -49,24 +44,19 @@ function HomeNav({ match }) {
             }
 
         };
-
         createItem(menuData, menu);
-        return {
-            menu,
-            defaultSelectedKeys
-        };
+        return menu
     }
-    const { menu, defaultSelectedKeys } = handleMenuConfig(menuConfig)
-
     return (
         <div >
             <Menu
-                defaultSelectedKeys={defaultSelectedKeys}
-                defaultOpenKeys={['sub1']}
+                //defaultSelectedKeys={defaultSelectedKeys}
+                //defaultOpenKeys={['sub1']}
+                selectedKeys={[location.pathname]}
                 mode="inline"
                 style={{ minHeight: '100vh' }}
             >
-                {menu}
+                {handleMenuConfig(menuConfig)}
             </Menu>
         </div>
     )

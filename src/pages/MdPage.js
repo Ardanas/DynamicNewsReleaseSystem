@@ -15,7 +15,7 @@ class MdPage extends React.Component {
             mdIsChecked: false,
             mdChannelValue: 'a',
             mdIsScheduledReleaseValue: false,
-            modalVisible: false
+            //modalVisible: false
         }
     }
     componentDidMount() {
@@ -29,9 +29,9 @@ class MdPage extends React.Component {
             "mdChannel": mdChannelValue
         })
 
-        this.setState({
+        /*this.setState({
             modalVisible: true
-        })
+        })*/
 
 
     }
@@ -124,8 +124,8 @@ class MdPage extends React.Component {
 
         ]
         const { getFieldDecorator } = this.props.form;
-        const { mdTypeValue, mdIsScheduledReleaseValue, modalVisible } = this.state
-        console.log("modalVisible", modalVisible)
+        const { mdTypeValue, mdIsScheduledReleaseValue } = this.state
+        //console.log("modalVisible", modalVisible)
         return (
             <Form onSubmit={this.handleSubmit}>
                 <Form.Item label="标题" key='abcd'>
@@ -228,7 +228,7 @@ class MdPage extends React.Component {
                         提交稿件
                     </Button>
                 </Form.Item>
-                <ShowModal modalVisible={modalVisible} title='提示信息' template='请变更' />
+                
             </Form>
         )
     }

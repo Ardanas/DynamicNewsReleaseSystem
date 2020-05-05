@@ -1,13 +1,21 @@
 import React from 'react'
 import MdPage from '../pages/MdPage'
+import HomePage from '../pages/HomePage'
 import CreatePage from '../pages/CreatePage'
 import EditorPage from '../pages/EditorPage'
-import FileManagePage from '../pages/FileManagePage'
 import ProfilePage from '../pages/setting/ProfilePage'
 import SettingPage from '../pages/setting/SettingPage'
 import MaterialPage from '../pages/MaterialPage'
+import DataCenterPage from '../pages/DataCenterPage'
+import SuccessResult from '../pages/result/SuccessResult'
+import NoReuslt from '../pages/result/NoReuslt'
 
 const menuRouteConfig = [
+    {
+        path: "/nav/home",
+        exact: true,
+        component: HomePage
+    },
     {
         path: "/nav/create",
         exact: true,
@@ -23,14 +31,19 @@ const menuRouteConfig = [
         component: EditorPage
     },
     {
+        path: "/fileList/:id",
+        exact: true,
+        component: EditorPage
+    },
+    {
         path: "/nav/material",
         exact: true,
         component: MaterialPage
     },
     {
-        path: "/nav/manage",
+        path: "/nav/datacenter",
         exact: true,
-        component: FileManagePage
+        component: DataCenterPage
     },
     {
         path: "/nav/profile",
@@ -41,6 +54,16 @@ const menuRouteConfig = [
         path: "/nav/setting",
         exact: true,
         component: SettingPage
+    },
+    {
+        path: "/nav/404",
+        exact: true,
+        component: NoReuslt
+    },
+    {
+        path: "/nav/success",
+        exact: true,
+        component: SuccessResult
     },
     {
         path: "*",

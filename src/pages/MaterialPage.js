@@ -1,117 +1,42 @@
-import React, { useState, useEffect } from 'react'
-import { Button, Icon, Modal, Checkbox, Row, Col, Card, List, Skeleton, Upload, message, Pagination, Spin } from 'antd'
+import React, { useState } from 'react'
+import { Button, Icon, Modal, Checkbox, Row, Col, Card, List, Skeleton, Pagination, Spin } from 'antd'
 import { useRequest } from '@umijs/hooks';
-import defaultConfig from '../common/config'
 import UploadImage from '../components/UploadImage'
 import api from '../utils/api';
-const { getMaterialList } = api
-console.log(api)
-let fileListMock = [
-    {
-        uid: '-1',
-        name: 'image.png',
-        status: 'done',
-        url: 'https://5b0988e595225.cdn.sohucs.com/images/20200209/c4855dac814e4580bdeaf68080abc5af.jpeg',
-    },
-    {
-        uid: '-2',
-        name: 'image.png',
-        status: 'done',
-        url: 'https://5b0988e595225.cdn.sohucs.com/images/20200209/7ac923d2ef1a480288ae3cd7750ebf57.jpeg',
-    },
-    {
-        uid: '-3',
-        name: 'image.png',
-        status: 'done',
-        url: 'https://5b0988e595225.cdn.sohucs.com/images/20200209/92bb5bfdd46e4ae6ab56c484a8b91477.png',
-    },
-    {
-        uid: '-4',
-        name: 'image.png',
-        status: 'done',
-        url: 'https://5b0988e595225.cdn.sohucs.com/images/20200209/adbfb6b027f148bdb185f7a59383bbfd.jpeg',
-    },
-    {
-        uid: '-5',
-        name: 'image.png',
-        status: 'done',
-        url: 'https://5b0988e595225.cdn.sohucs.com/images/20200209/7ac923d2ef1a480288ae3cd7750ebf57.jpeg',
-    },
-    {
-        uid: '-6',
-        name: 'image.png',
-        status: 'done',
-        url: 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png',
-    },
-    {
-        uid: '-7',
-        name: 'image.png',
-        status: 'done',
-        url: 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png',
-    },
-    {
-        uid: '-8',
-        name: 'image.png',
-        status: 'done',
-        url: 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png',
-    },
-    {
-        uid: '-9',
-        name: 'image.png',
-        status: 'done',
-        url: 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png',
-    }
-]
-
+const { getMaterialList, deleteMaterialList } = api
+const user_info = JSON.parse(localStorage.getItem('user_info'))
 export default function MaterialPage() {
 
 
     const [previewVisible, setPreviewVisible] = useState(false)
     const [previewImage, setPreviewImage] = useState('')
-    const [fileList, setFileList] = useState(fileListMock)
+    const [fileList, setFileList] = useState([])
     const [selectedList, setSelectedList] = useState([])
     const [isCheckedAll, setIsCheckedAll] = useState(false)
     const [isManageModal, setIsManageModal] = useState(false)
 
-
-
-    const { run, cancel, loading } = useRequest(getMaterialList, {
-        manual: true,
-        //pollingInterval: 1000,
-        //pollingWhenHidden: false
+    const { loading } = useRequest(getMaterialList, {
+        onSuccess(result, params) {
+            //console.log(result)
+            if (result.sign === '1') {
+                setFileList(result.datas)
+            }
+        }
     });
-    //console.log(data)
+
+    const { run } = useRequest(deleteMaterialList, {
+        manual: true,
+        onSuccess(result, params) {
+            console.log('delete', result)
+            console.log(params[1])
+            if (result.sign === '1') {
+                params[1] && params[1]()
+            }
+        }
+    });
 
 
 
-    const getBase64 = (file) => {
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.readAsDataURL(file);
-            reader.onload = () => resolve(reader.result);
-            reader.onerror = error => reject(error);
-        });
-    }
-
-
-    const uploadButton = (
-        <div>
-            <Icon type="plus" />
-            <div className="ant-upload-text">Upload</div>
-        </div>
-    );
-
-    const handlePreview = (url, e) => {
-        console.log(url)
-        //e.preventDefault();
-        setPreviewVisible(true)
-        setPreviewImage(url)
-
-    };
-    const handleChange = ({ fileList }) => {
-        console.log(fileList)
-        setFileList(fileList)
-    };
     const handleDelete = (id) => {
         console.log(id)
         Modal.confirm({
@@ -121,61 +46,18 @@ export default function MaterialPage() {
             cancelText: '取消',
             onOk() {
                 console.log(fileList.filter(item => item.uid !== id))
-                setFileList(fileList.filter(item => item.uid !== id));
+                run({ deleteList: [id] }, () => {
+                    setFileList(fileList.filter(item => item.systemid !== id));
+                    if (selectedList.length === fileList.length) {
+                        setIsCheckedAll(true)
+                    }
+                })
 
-                if (selectedList.length === fileList.length) {
-                    setIsCheckedAll(true)
-                }
             }
         })
     }
+
     const uploadParams = {
-        name: 'file',
-        action: '/user/addMaterialList',
-        data: { uid: defaultConfig.uid },
-        fileList,
-        showUploadList: false,
-        multiple: true,
-        accept: "image/*",
-        beforeUpload(file) {
-            const isJpgOrPngOrGif = file.type === 'image/jpeg' || file.type === 'image/png' || file.type === 'image/gif';
-            if (!isJpgOrPngOrGif) {
-                message.error('只支持jpg/png/gif格式文件');
-            }
-            const isLt2M = file.size / 1024 / 1024 < 2;
-            if (!isLt2M) {
-                message.error('图片大小不能超过2M');
-            }
-            return isJpgOrPngOrGif && isLt2M;
-        },
-        onChange(info) {
-
-            let newFileList = [...info.fileList];
-            newFileList = newFileList.map(file => {
-                if (file.response) {
-                    file.uid = `-${file.uid}`;
-                    file.url = file.response.datas.path;
-                }
-                return {
-                    uid: file.uid,
-                    name: file.name,
-                    status: file.status,
-                    url: file.url
-                };
-            });
-            if (info.file.status !== 'uploading') {
-                //console.log(info.file, info.fileList);
-            }
-            if (info.file.status === 'done') {
-                message.info(`图片上传成功`);
-            } else if (info.file.status === 'error') {
-                message.error(`图片上传失败`);
-            }
-            setFileList(newFileList)
-        }
-    }
-
-    const uploadParams2 = {
         name: 'file',
         multiple: true,
         fileList,
@@ -185,13 +67,15 @@ export default function MaterialPage() {
         showTemplate: true,
         onChange(res) {
             console.log(res)
-            const { originalFilename, path, status, sourceid } = res
+            const { originalFilename, path, status, size, sourceid } = res
             const item = {
-                uid: sourceid,
-                name: originalFilename,
-                status: status,
-                url: path
+                systemid: `-${sourceid}`,
+                filename: originalFilename,
+                filepath: path,
+                filesize: size,
+                status: status
             }
+            console.log(fileList)
             setFileList([...fileList, item])
         }
     }
@@ -207,16 +91,6 @@ export default function MaterialPage() {
         handleToggleActive(checked)
         setSelectedList(uidList)
         setIsCheckedAll(checked)
-    }
-    const handleCheckd = (e) => {
-        const { checked, value } = e.target;
-        const item = checked ? [...selectedList, value] : selectedList.filter(item => item !== value)
-        console.log(item)
-
-        setSelectedList(item)
-        setIsCheckedAll(item.length === fileList.length)
-
-
     }
 
     const handleManageModal = () => {
@@ -237,7 +111,7 @@ export default function MaterialPage() {
     const handleDeleteChecked = () => {
         let fileListItem = [...fileList];
         selectedList.map(selectedItem => {
-            fileListItem = fileListItem.filter(listItem => listItem.uid !== selectedItem)
+            fileListItem = fileListItem.filter(listItem => listItem.systemid !== selectedItem)
         })
         Modal.confirm({
             title: '提示信息',
@@ -245,9 +119,11 @@ export default function MaterialPage() {
             okText: '确定',
             cancelText: '取消',
             onOk() {
-                setFileList(fileListItem)
-                handleToggleActive(false)//删除完毕将选中状态取消
-                setSelectedList([]) //置空选中列表
+                run({ deleteList: selectedList }, () => {
+                    setFileList(fileListItem)
+                    handleToggleActive(false)//删除完毕将选中状态取消
+                    setSelectedList([]) //置空选中列表
+                })
             }
         })
     }
@@ -255,17 +131,17 @@ export default function MaterialPage() {
     const handleImgsClick = (item, e) => {
         e.persist()
         console.log(e.target)
-        const { url, uid } = item
+        const { filepath, systemid } = item
         if (isManageModal) {
             const { target } = e
             target.classList.toggle('active');
-            const _selectedList = target.classList.contains('active') ? [...selectedList, uid] : selectedList.filter(data => data !== uid)
+            const _selectedList = target.classList.contains('active') ? [...selectedList, systemid] : selectedList.filter(data => data !== systemid)
             console.log(_selectedList)
             setSelectedList(_selectedList)
             setIsCheckedAll(_selectedList.length === fileList.length)
         } else {
             setPreviewVisible(true)
-            setPreviewImage(url)
+            setPreviewImage(filepath)
         }
     }
 
@@ -278,12 +154,6 @@ export default function MaterialPage() {
     }
     return (
         <>
-            {/*loading && <Spin />*/}
-            <Button onClick={() => {
-                run()
-            }} loading={loading}>
-                test
-            </Button>
             <Row type='flex' align='middle' style={{ marginBottom: 10 }}>
                 <Col span={12}>
                     <Row type='flex' align='middle'>
@@ -291,7 +161,8 @@ export default function MaterialPage() {
                             value='checkedAll'
                             onChange={handleCheckedAll}
                             checked={isCheckedAll}
-                            style={{ padding: '0 10px', fontSize: 16, display: isManageModal ? 'block' : 'none' }}
+                            className='fs-16 px-10'
+                            style={{ display: isManageModal ? 'block' : 'none' }}
                         >
                             全选
                         </Checkbox>
@@ -301,60 +172,66 @@ export default function MaterialPage() {
                         <Button
                             disabled={selectedList.length === 0}
                             onClick={handleDeleteChecked}
+                            className='mx-10'
                             style={{
-                                display: isManageModal ? 'block' : 'none',
-                                margin: '0 10px'
+                                display: isManageModal ? 'block' : 'none'
                             }}
                         >删除选中</Button>
                     </Row>
                 </Col>
 
-                <Col span={12} style={{ fontSize: 14, display: !isManageModal ? 'block' : 'none' }}>
+                <Col span={12} className='fs-14' style={{ display: !isManageModal ? 'block' : 'none' }}>
                     <Row type='flex' align='middle' justify='end' >
-                        <span style={{ padding: '0 10px', display: 'inline-block' }}>图片素材共有 {fileList.length} 张</span>
-                        <UploadImage {...uploadParams2} />
+                        <span className='px-10' style={{ display: 'inline-block' }}>图片素材共有 {fileList.length} 张</span>
+                        <UploadImage {...uploadParams} />
                     </Row>
                 </Col>
             </Row>
-            <Row style={{ width: '100%' }}>
+            <Row className='w-100'>
                 <Spin spinning={loading}>
                     <List
-                        className='listContainer'
+                        className='list-container'
                         grid={{ gutter: 10, column: 4 }}
                         dataSource={fileList}
+                        pagination={{
+                            defaultCurrent: 1,
+                            total: fileList.length,
+                            pageSizeOptions: ['10', '20', '30', '40'],
+                            showSizeChanger: true,
+                            position: 'bottom'
+                        }}
                         renderItem={item => (
-                            <List.Item>
-                                <Skeleton loading={false}>
+                            <List.Item >
+                                <Skeleton loading={loading}>
                                     <Card
                                         bodyStyle={{ padding: 10, cursor: isManageModal ? 'pointer' : '' }}
                                         onClick={isManageModal ? handleImgsClick.bind(this, item) : undefined}
                                     >
                                         <div
-                                            className={isManageModal ? 'material-item' : ''}
+                                            className={['w-100', 'o-hidden', 'mb-10', isManageModal ? 'material-item' : ''].join(' ')}
                                             onClick={!isManageModal ? handleImgsClick.bind(this, item) : undefined}
-                                            style={{ width: '100%', height: 156, overflow: 'hidden', backgroundColor: '#f4f4f4', marginBottom: 10 }}>
+                                            style={{ height: 156, backgroundColor: '#f4f4f4' }}>
                                             <img
-                                                alt={item.name}
-                                                src={item.url}
-                                                width='100%'
-                                                height='100%'
-                                                style={{ cursor: 'pointer', objectFit: 'contain' }}
+                                                alt='加载失败'
+                                                src={item.filepath}
+                                                className='w-100 h-100 pointer img-contain'
                                             />
                                         </div>
-                                        <Row type='flex' justify='space-between' align='middle' style={{ width: '100%' }}>
+                                        <Row type='flex' justify='space-between' align='middle' className='w-100'>
                                             <Col span={21}>
                                                 <p
-                                                    alt={item.name}
-                                                    title={item.name}
-                                                    style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', textAlign: 'center' }}>
-                                                    {item.name}
+                                                    alt='加载失败'
+                                                    title={item.filename}
+                                                    className='text-center one-text-ellipsis'>
+                                                    {item.filename}
                                                 </p>
                                             </Col>
                                             <Col span={3}>
                                                 <Icon
-                                                    onClick={handleDelete.bind(null, item.uid)}
+                                                    onClick={handleDelete.bind(null, item.systemid)}
                                                     type="delete"
-                                                    style={{ fontSize: 18, cursor: 'pointer', display: isManageModal ? 'none' : 'block' }}
+                                                    className='fs-18 pointer'
+                                                    style={{ display: isManageModal ? 'none' : 'block' }}
                                                     color='#333' />
                                             </Col>
                                         </Row>
@@ -365,18 +242,8 @@ export default function MaterialPage() {
                     />
                 </Spin>
             </Row>
-            <Row style={{ textAlign: 'right' }}>
-                <Pagination
-                    onChange={handlePaginationChange}
-                    pageSizeOptions={['10', '20', '30', '40']}
-                    showSizeChanger
-                    onShowSizeChange={handleShowSizeChange}
-                    defaultCurrent={1}
-                    total={20}
-                />
-            </Row>
             <Modal visible={previewVisible} footer={null} onCancel={() => setPreviewVisible(false)}>
-                <img alt="example" style={{ width: '100%' }} src={previewImage} />
+                <img alt="example" className='w-100' src={previewImage} />
             </Modal>
         </>
 

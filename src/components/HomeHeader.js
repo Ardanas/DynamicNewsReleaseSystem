@@ -1,41 +1,60 @@
 import React, { useState } from 'react';
-import { Layout, Icon, Row, Col, Menu, Avatar, Dropdown } from 'antd';
+import { Layout, Icon, Row, Col, Menu, Avatar, Dropdown, Modal } from 'antd';
 import { Link } from 'react-router-dom'
 const { Header } = Layout;
-const { SubMenu } = Menu;
-
+const { ipcRenderer } = window.require('electron')
+const user_info = JSON.parse(localStorage.getItem('user_info'))
 function HomeHeader(props) {
     const [collapsed, setCollapsed] = useState(false);
     const toggleCollapsed = () => {
         setCollapsed(!collapsed)
         props.onHeaderClick && props.onHeaderClick(collapsed)
     }
+    const handleQuit = () => {
+        //关闭所有程序
+        Modal.confirm({
+            title: '提示',
+            content: '是否要退出应用',
+            onOk() {
+                ipcRenderer.send('close-main-window')
+                localStorage.clear();
+            }
+        });
+    }
     const menu = (
         <Menu>
             <Menu.Item key="sub3">
                 <Link to='/nav/setting'>
-                    <Icon type="setting" />     设置
+                    <Icon type="setting" />&nbsp;&nbsp;&nbsp;&nbsp;设置
                 </Link>
             </Menu.Item>
+            <Menu.Item key="sub4">
+                <div onClick={handleQuit}>
+                    <Icon type="logout" />&nbsp;&nbsp;&nbsp;&nbsp;退出
+                </div>
+            </Menu.Item>
+
         </Menu>
     )
 
     return (
-        <Header style={{ background: '#fff', padding: 0, height: 58, borderBottom: '1px solid #ccc', verticalAlign: 'baseline' }}>
+        <Header style={{ background: '#fff', padding: 0, borderBottom: '1px solid #ccc', verticalAlign: 'baseline' }}>
             <Row type='flex' justify='space-between' align='middle'>
-                <Col >
+                <Col xs={3} sm={1}
+                    className="d-flex ai-center jc-center pointer header-item"
+                    onClick={toggleCollapsed}
+                >
                     <Icon
                         className="trigger"
                         type={props.collapsed ? 'menu-unfold' : 'menu-fold'}
-                        onClick={toggleCollapsed}
-                        style={{ paddingLeft: 10 }}
+
                     />
                 </Col>
-                <Col span={5}>
+                <Col span={4} className='text-center pointer header-item'>
                     <Dropdown overlay={menu}>
                         <p style={{ height: 56 }}>
-                            <Avatar src="https://i.loli.net/2020/02/16/4lt8NdM9yAZ3sLW.jpg" />
-                            <span style={{ padding: '0 10px', fontSize: 14 }}>- 妙啊</span>
+                            <Avatar src={user_info.avatar} />
+                            <span style={{ padding: '0 10px', fontSize: 14 }}>{user_info.username}</span>
                         </p>
                     </Dropdown>
                 </Col>

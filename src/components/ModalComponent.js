@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React from 'react'
 import { Modal } from 'antd'
 
 /*function ModalComponent({ modalVisible = false, title, template, handleOkChange = null, handleCancelChange = null }) {

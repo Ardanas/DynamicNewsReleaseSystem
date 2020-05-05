@@ -1,8 +1,7 @@
-import React, { useState } from 'react'
-import { Upload, Icon, Button, message, Modal, Row, Col } from 'antd'
+import React, { useState, useEffect } from 'react'
+import { Upload, Icon, Button, message, Modal, Row, Col, Spin } from 'antd'
 import { useRequest } from '@umijs/hooks';
 import api from '../utils/api';
-import defaultConfig from '../common/config'
 const { addMaterialList } = api
 function UploadImage({
     showUploadList = false,
@@ -11,13 +10,16 @@ function UploadImage({
     limitType = ['jpeg', 'png'],
     limitSize = 2,
     data = {},
-    className = 'image-uploader',
+    className = '',
     showTemplate = false,
+    templateText = '上传图片',
+    templateClass = null,
     fileList = null,
-    template = null,
-    onChange = null
-}) {
+    onChange = null,
+    defaultImageUrl = ''
 
+}) {
+    console.log('default image', defaultImageUrl)
     const [imageUrl, setImageUrl] = useState('')
     const { run, loading } = useRequest(addMaterialList, {
         manual: true,
@@ -30,20 +32,21 @@ function UploadImage({
                 setImageUrl(datas.path)
                 message.info('图片上传成功')
                 onChange && onChange(datas)
-            }else{
+            } else {
                 message.info('图片上传失败')
             }
         }
     });
+    useEffect(() => {
+        console.log('imageUrl', imageUrl)
+        setImageUrl(defaultImageUrl)
+    }, [defaultImageUrl])
     const uploadButton = (
-        <div>
-            <Icon type={loading ? 'loading' : 'camera'} />
-        </div>
+        <Icon type="camera" />
     );
     const customRequest = ({ file }) => {
         const form = new FormData();
         form.set('file', file);
-        form.set('uid', defaultConfig.uid)
         data && form.set('data', data)
         run(form)
     }
@@ -70,15 +73,25 @@ function UploadImage({
             return isLimitType && isLimitSize;
         }
     };
+
+    /*const renderImage = () => {
+        return imageUrl ?
+            <img src={imageUrl} alt="avatar" className='w-100' />
+            :
+            defaultImageUrl ?
+                <img src={defaultImageUrl} alt="avatar" className='w-100' />
+                : uploadButton
+    }*/
+    const renderImage = imageUrl ?
+        <Spin spinning={loading}>
+            <img src={imageUrl} alt="avatar" className='w-100' />
+        </Spin> : uploadButton
+
     return (
         <Row>
             <Upload {...props} >
                 {
-                    showTemplate ? (
-                        <Button type='primary'>上传图片</Button>
-                    ) : (
-                        imageUrl ? <img src={imageUrl} alt="avatar" style={{ width: '100%' }} /> : uploadButton
-                    )
+                    showTemplate ? <Button type='primary' className={templateClass}>{templateText}</Button> : renderImage
                 }
             </Upload>
         </Row>

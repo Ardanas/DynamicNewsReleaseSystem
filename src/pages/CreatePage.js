@@ -1,21 +1,29 @@
 import React, { useEffect, useState } from 'react'
-import { Icon, Row, Col, Button, Tabs, Statistic, Divider, Tag, message, Popconfirm } from 'antd'
+import { Icon, Row, Col, Button, Tabs, Statistic, Divider, Tag, message, Popconfirm, Drawer } from 'antd'
 import { Link } from 'react-router-dom'
 import { useRequest } from '@umijs/hooks';
 import moment from 'moment'
 import TableComponent from '../components/TableComponent'
+import OutputPreview from '../components/OutputPreview'
 import DraftPage from './DraftPage'
 import api from '../utils/api';
-const { getNews, deleteNews } = api
+const { getNews, deleteNews, downNews } = api
 const { TabPane } = Tabs;
 
 function RelesePage() {
+    const [visible, setVisible] = useState(false)
+    const [previewValue, setPreviewValue] = useState({})
     const [tagsKey, setTagsKey] = useState('all')
     const [tableData, setTableData] = useState(null)
-    const { loading, run } = useRequest(getNews, {
+    const [allNum, setAllNum] = useState(0)
+    const { loading, run, refresh } = useRequest(getNews, {
         manual: true,
-        onSuccess(res) {
+        cacheKey: tagsKey,
+        onSuccess(res, params) {
             setTableData(res.datas)
+            if (params[0] === 'all') {
+                setAllNum(res.datas.length)
+            }
         }
     })
     const { loading: deleteLoading, run: deleteRun } = useRequest(deleteNews, {
@@ -25,9 +33,23 @@ function RelesePage() {
             message.info('删除成功');
         }
     })
+    const { run: downRun } = useRequest(downNews, {
+        manual: true,
+        onSuccess(res, params) {
+            console.log(res)
+            if (res.sign === '1') {
+                message.info('下架成功');
+                refresh()
+            }
+        }
+    })
+
     useEffect(() => {
         run(tagsKey)
     }, [tagsKey])
+    const handleDownNews = (id) => {
+        downRun(id)
+    }
     const tableColumns = [
         {
             title: '标题',
@@ -42,11 +64,11 @@ function RelesePage() {
             key: 'address',
             render: text => (
                 <span>
-                    <Icon type="eye" /> 123
+                    <Icon type="star-o" /> 123
                     <Divider type="vertical" />
-                    <Icon type="eye" /> 11
+                    <Icon type="like-o" /> 11
                     <Divider type="vertical" />
-                    <Icon type="eye" /> 33
+                    <Icon type="message" /> 33
                 </span>
             )
         },
@@ -83,7 +105,17 @@ function RelesePage() {
             key: 'action',
             render: (text, record) => (
                 <span>
-                    <Link to={`/nav/editor/p/${record.systemid}`}>修改</Link>
+                    {
+                        record.fbzt.value ? <Popconfirm
+                            title="下架后到草稿箱, 可以继续编辑后发布, 确定下架吗?"
+                            onConfirm={() => handleDownNews(record.systemid)}
+                            okText="确定"
+                            cancelText="取消"
+                        >
+                            <a>下架</a>
+                        </Popconfirm> : <Link to={`/fileList/${record.systemid}`}>修改</Link>
+                    }
+
                     <Divider type="vertical" />
                     <Popconfirm
                         title="确定删除吗?"
@@ -92,7 +124,7 @@ function RelesePage() {
                         cancelText="取消"
                     >
                         <a>删除</a>
-                    </Popconfirm>,
+                    </Popconfirm>
                 </span>
             )
         }
@@ -101,44 +133,51 @@ function RelesePage() {
     const handleDelete = (id) => {
         deleteRun(id)
     }
+    const handlePreview = (record) => {
+        console.log(record)
+        setVisible(true)
+        record.created_at = moment(record.created_at).fromNow()
+        record.content = record.contentforhtml
+        setPreviewValue(record)
+    }
     return (
         <>
-            <Row type="flex" justify='space-around' style={{ height: 100 }}>
+            <Row type="flex" justify='space-around' className='create-header'>
 
-                <Col span={8} style={{ borderRadius: 5, height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }} >
-                    <Link to='/nav/editor/p/1237123123'>
+                <Col span={8} className='d-flex ai-center jc-center create-header-left' style={{ height: 100 }}>
+                    <Link to='/fileList/create'>
                         <Button type="primary" shape="round" icon="upload" size='large'>
                             发布内容
                         </Button>
                     </Link>
                 </Col>
-                <Col span={15} style={{ borderRadius: 5, height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
+                <Col span={15} className='d-flex ai-center jc-center text-center create-header-right' style={{ height: 100 }}>
 
                     <Col span={8}>
-                        <Statistic title="阅读量" value={112893} />
+                        <Statistic title="阅读量" value={Math.floor(Math.random() * 1000)} />
                     </Col>
                     <Col span={8}>
-                        <Statistic title="关注数" value={112893} />
+                        <Statistic title="关注数" value={Math.floor(Math.random() * 1000)} />
                     </Col>
                     <Col span={8}>
-                        <Statistic title="发布量" value={112893} />
+                        <Statistic title="发布量" value={allNum} />
                     </Col>
 
                 </Col>
             </Row>
 
-            <Row style={{ marginTop: 20 }}>
+            <Row style={{ marginTop: 20 }} className='bg-white br-4'>
                 <Col span={24} >
                     <Tabs defaultActiveKey="all" size='large' onTabClick={(key) => setTagsKey(key)}>
                         <TabPane tab={
                             <span>
-                                全部 <span style={{ color: '#ccc' }}>(11)</span>
+                                全部 <span style={{ color: '#ccc' }}>({allNum})</span>
                             </span>
                         } key="all">
-                            <TableComponent {...props} columns={tableColumns} loading={loading} deleteLoading={deleteLoading} />
+                            <TableComponent {...props} onPreview={handlePreview} columns={tableColumns} loading={loading} deleteLoading={deleteLoading} />
                         </TabPane>
                         <TabPane tab="已发布" key="1">
-                            <TableComponent {...props} columns={tableColumns} loading={loading} deleteLoading={deleteLoading} />
+                            <TableComponent {...props} onPreview={handlePreview} columns={tableColumns} loading={loading} deleteLoading={deleteLoading} />
                         </TabPane>
                         <TabPane tab="草稿箱" key="0">
                             <DraftPage {...props} loading={loading} onChange={handleDelete} />
@@ -147,10 +186,20 @@ function RelesePage() {
                             <DraftPage />
                         </TabPane>
                     </Tabs>
-
                 </Col>
 
             </Row>
+
+            <Drawer
+                title='文章预览'
+                width='80%'
+                onClose={() => { setVisible(false) }}
+                visible={visible}
+                bodyStyle={{ padding: '0 0 80px 0' }}
+            >
+                <OutputPreview {...previewValue} />
+            </Drawer>
+
         </>
     )
 }

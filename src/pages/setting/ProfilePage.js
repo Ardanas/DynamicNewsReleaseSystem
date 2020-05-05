@@ -1,86 +1,80 @@
-import React from 'react'
-import { Form, Row, Col, Button, Avatar } from 'antd';
-import useForm from 'rc-form-hooks';
+import React, { useState } from 'react'
+import { Row, Col, Avatar, message, Spin } from 'antd';
 import { useRequest } from '@umijs/hooks';
 import EditableComponent from '../../components/EditableComponent'
+import UploadImage from '../../components/UploadImage'
 import api from '../../utils/api';
 const { updateProfile, getProfile } = api
+const user_info = JSON.parse(localStorage.getItem('user_info'))
 function ProfilePage() {
-    const { getFieldDecorator, validateFields, setFieldsValue, errors, values } = useForm();
-    const { run, loading: updateLoading } = useRequest(updateProfile, {
-        manual: true,
-        onSuccess() {
-            //上传图片
+
+    const [avatar, setAvatar] = useState('')
+    const [userInfo, setUserInfo] = useState({})
+
+    const { run } = useRequest(updateProfile, { manual: true })
+    const { data, loading, error } = useRequest(getProfile, {
+        onSuccess(result, params) {
+            const { sign, datas } = result
+            const data = datas[0]
+            if (sign === '1') {
+                setAvatar(data.avatar)
+                setUserInfo(data);
+                localStorage.setItem('user_info', JSON.stringify({
+                    ...user_info,
+                    avatar: data.avatar
+                }))
+            }
+        },
+        onError() {
+            message.error('服务器错误,请联系管理员')
         }
     })
-    const { data, error } = useRequest(getProfile)
-    const handleSubmit = (e) => {
-        console.log(values)
-        e.preventDefault();
-        validateFields()
-            .then(res => {
-                console.log(res)
-            })
-            .catch(err => {
-                console.log(err)
-            });
-    };
-    const formItemLayout = {
-        labelCol: {
-            xs: { span: 24 },
-            sm: { span: 2 },
-        },
-        wrapperCol: {
-            xs: { span: 24 },
-            sm: { span: 18 },
-        },
-    };
-    const s = {
-        border: 0,
-        outline: 0
+    const uploadParams = {
+        name: 'file',
+        fileList: [avatar],
+        showUploadList: false,
+        listType: null,
+        showTemplate: true,
+        templateText: '点击上传',
+        templateClass: 'mt-10',
+        onChange(res) {
+            console.log(res)
+            const { path } = res
+            setAvatar(path)
+            run({ key: 'avatar', value: path })
+            //const info = { ...user_info, avatar: path }
+            //localStorage.setItem('user_info', JSON.stringify(info))
+        }
     }
+    console.log(data)
     return (
-        <Form onSubmit={handleSubmit} {...formItemLayout}>
-            <Form.Item key='avatar'>
-                {getFieldDecorator('avatar')
-                    (
-                        <Row style={{ marginLeft: 10 }}>
-                            <Col span={5}>
-                                <Avatar
-                                    shape="square"
-                                    size={90}
-                                    src='https://i.loli.net/2020/02/16/4lt8NdM9yAZ3sLW.jpg' />
-                            </Col>
-                            <Col span={16}>
-                                <p>支持 jpg、png 格式大小 5M 以内的图片</p>
-                                <Button type='primary'>点击上传</Button>
-                            </Col>
-                        </Row>
+        <Spin spinning={loading}  >
+            <Row className='ml-10' >
+                <Col lg={4} xl={3}>
+                    <Avatar shape="square" size={100} src={avatar} />
+                </Col>
+                <Col >
+                    <p className='mt-10'>支持 jpg、png 格式大小 5M 以内的图片</p>
+                    <UploadImage {...uploadParams} />
+                </Col>
+            </Row>
 
-                    )
-                }
-            </Form.Item>
-            <Form.Item>
-                {getFieldDecorator('username')(
-                    <EditableComponent content='qweqwe' label='用户名' key='username' />
-                )}
-            </Form.Item>
-            <Form.Item >
-                {getFieldDecorator('email')(
-                    <EditableComponent content='719481334@qq.com' label='邮箱' key='email' />
-                )}
-            </Form.Item>
-            <Form.Item>
-                {getFieldDecorator('phone')(
-                    <EditableComponent content='15975631649' label='电话' key='phone' />
-                )}
-            </Form.Item>
-            <Form.Item>
-                {getFieldDecorator('briefContent')(
-                    <EditableComponent content='nice 啊 马飞' label='简介' key='introduction'/>
-                )}
-            </Form.Item>
-        </Form>
+            <Row>
+                <Col className='mt-30'>
+                    <EditableComponent content={userInfo.username} label='用户名' name='username' />
+                </Col>
+                <Col className='mt-30'>
+                    <EditableComponent content={userInfo.email} label='邮箱' name='email' />
+                </Col>
+                <Col className='mt-30'>
+                    <EditableComponent content={userInfo.phone} label='电话' name='phone' />
+                </Col>
+                <Col className='mt-30'>
+                    <EditableComponent content={userInfo.jj} label='简介' name='jj' />
+                </Col>
+            </Row>
+
+        </Spin>
     )
 }
 

@@ -1,14 +1,14 @@
 import React from 'react'
 import { Row, Col, Radio } from 'antd'
 
-function RadioList({ dataLists = [], defaultRadioValue = '', buttonStyle = 'solid', onChange = null }) {
-    
+function RadioList({ dataLists = [], defaultRadioValue = 'a', buttonStyle = 'solid', onChange = null }) {
     const listItems = dataLists.map((item, index) => {
         return (
             <Col span={4} key={item.id}>
                 <Radio.Button 
                     value={item.key} 
-                    style={{ width: '100%', textAlign: 'center' }}
+                    className='w-100'
+                    style={{ textAlign: 'center' }}
                 >
                     {item.value}
                 </Radio.Button>
@@ -22,9 +22,10 @@ function RadioList({ dataLists = [], defaultRadioValue = '', buttonStyle = 'soli
     return (
         <Row gutter={[8, 16]}>
             <Radio.Group 
-                defaultValue={defaultRadioValue} 
+                value={defaultRadioValue} 
                 buttonStyle={buttonStyle} 
-                style={{ width: '100%' }} 
+                className='w-100'
+                //style={{ width: '100%' }} 
                 onChange={handleRadioChange}
             >
                 {listItems}

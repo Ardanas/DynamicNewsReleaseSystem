@@ -1,58 +1,54 @@
-import React, { useState, useRef } from 'react'
-import { Row, Col, Icon, Divider, Spin, notification } from 'antd'
+import React, { useState, useRef, useEffect } from 'react'
+import { Row, Col, Icon, Divider, Spin, notification, message } from 'antd'
 import { useRequest } from '@umijs/hooks';
-import defaultConfig from '../common/config'
 import api from '../utils/api';
+import { handleNotification } from '../utils';
 const { updateProfile } = api
 const antIcon = <Icon type="loading" />
-function EditableComponent({ label, content, key }) {
+function EditableComponent({ label, content, name = '', placeholder = '(请填写)', type = 'text', operation = true, onBlur = null, isClear = false }) {
+    //console.log('content', content)
     const [isEditor, setIsEditor] = useState(false)
+    //const [inputVal, setInputVal] = useState(content)
     const editorRef = useRef()
     const { run, loading } = useRequest(updateProfile, {
         manual: true,
-        onSuccess() {
-            handleNotification('成功', '修改成功', 2.5, 'success')
+        onSuccess(result, params) {
+            if (result.sign === '1') {
+                handleNotification('成功', '修改成功', 'success');
+                setIsEditor(false);
+            }
         },
         onError() {
-            handleNotification('失败 ', '修改失败，请联系管理员', 2.5, 'error')
+            handleNotification('失败 ', '修改失败，请联系管理员', 'error')
         }
     })
+    useEffect(() => {
+        if (isClear) {
+            editorRef.current.value = '';
+            setIsEditor(false)
+        }
+    })
+
     const handleEditChange = () => {
-        console.dir(editorRef.current)
-        const obj = editorRef.current;
-        const selection = window.getSelection();
-        const range = document.createRange();
-        if (editorRef.current.innerText.length !== 0) {
+        //console.dir(editorRef.current)
+        //const obj = editorRef.current;
+        //const selection = window.getSelection();
+        //const range = document.createRange();
+        /*if (inputVal.length !== 0) {
             setTimeout(() => {
                 range.setStart(obj, 1);
                 range.setEnd(obj, 1);
                 selection.removeAllRanges();
                 selection.addRange(range);
             }, 0);
+        }*/
+        if (name == 'email') {
+            message.info('功能开发中, 暂不支持修改...')
+        } else {
+            setIsEditor(true)
         }
-        setIsEditor(true)
 
-    }
-    const baseStyle = {
-        border: 0,
-        outline: 0
-    }
-    const editStyle = {
-        display: 'flex',
-        alignItems: 'center',
-        width: '95%',
-        height: 32,
-        fontSize: 14,
-        color: 'rgba(0, 0, 0, 0.65)',
-        padding: '0 10px',
-        lineHeight: 2.2,
-        border: '1px solid #d9d9d9',
-        borderRadius: 4,
-        outline: 0,
-        textOverflow: 'ellipsis',
-        overflow: 'hidden',
-        whiteSpace: 'nowrap',
-        WebkitUserSelect: 'auto'
+
     }
     const handleRule = (key) => {
         switch (key) {
@@ -68,11 +64,11 @@ function EditableComponent({ label, content, key }) {
                 }
             case 'phone':
                 return {
-                    rule: /(d+-)?(d{4}-?d{7}|d{3}-?d{8}|^d{7,8})(-d+)?/,
+                    rule: /^[1][3,4,5,7,8,9][0-9]{9}$/,
                     errorTip: '请输入正确的电话号码'
                 }
             default:
-                return null;
+                return {};
         }
     }
     const handleSave = () => {
@@ -80,27 +76,37 @@ function EditableComponent({ label, content, key }) {
         //如果修改的值和原本的值没有变化，不修改
         //用户名仅支持中英文，数字和下划线
         //email ^[/w-]+(/.[/w-]+)*@[/w-]+(/.[/w-]+)+$
-        //电话号码： (d+-)?(d{4}-?d{7}|d{3}-?d{8}|^d{7,8})(-d+)?
-        let item = editorRef.current.innerText;
-        const { rule, errorTip } = handleRule(key)
-        if (rule && !rule.test(item)) {
-            handleNotification('修改失败', errorTip, 2.5, 'error')
-        } else {
-            if (item !== content) {
-                run({ key, value: content, uid: defaultConfig.uid })
+        //电话号码： ^[1][3,4,5,7,8,9][0-9]{9}$
+        //let item = editorRef.current.innerText;
+        const item = editorRef.current.value;
+        const { rule = '', errorTip = '' } = handleRule(name)
+        console.log(item)
+        console.log(rule)
+        if (rule && rule !== '') {
+            if (!rule.test(item)) {
+                handleNotification('修改失败', errorTip, 'error')
+                return;
             }
-            setIsEditor(false);
         }
+        //console.log(inputVal !== content)
+        if (editorRef.current.value !== content) {
+            run({ key: name, value: editorRef.current.value })
+        } else {
+            setIsEditor(false)
+        }
+
+
     }
-    const handleNotification = (message, description, duration = 2.5, type = 'open') => {
+    /*const handleNotification = (message, description, duration = 2.5, type) => {
         notification[type]({
             message,
             description,
             duration
         });
-    }
+    }*/
     const handleCancel = () => {
-        editorRef.current.innerText = content; //初始化值
+        editorRef.current.value = content; //初始化值
+        //setInputVal(content)
         setIsEditor(false)
     }
     const handleKeyDown = (e) => {
@@ -111,39 +117,60 @@ function EditableComponent({ label, content, key }) {
         }
     }
     const handleBlur = () => {
-        if (editorRef.current.innerText === content) {
+        /*if (editorRef.current.innerText === content) {
             setIsEditor(false)
+        }*/
+        //console.dir(editorRef.current.value)
+        //console.log(content)
+        if (editorRef.current.value === content || editorRef.current.value === '') {
+            setIsEditor(false)
+            editorRef.current.value = content; //初始化值
+        } else {
+            onBlur && onBlur(editorRef.current.value)
         }
     }
     return (
         <Row type='flex' align='middle'>
-            <Col span={4} style={{ textAlign: 'center', fontSize: 14, color: '#333' }}>
+            <Col span={operation ? 3 : 4} className='text-center fs-14' style={{ color: '#333' }}>
                 {label}
             </Col>
-            <Col span={15}>
-                <p
-                    suppressContentEditableWarning
-                    contentEditable={isEditor.toString()}
-                    style={isEditor ? editStyle : baseStyle}
+            <Col span={operation ? 15 : 19} className='editable-input'>
+                <input
+                    type={type}
+                    //value={inputVal}
+                    defaultValue={content}
+                    disabled={name === 'email'}
+                    placeholder={content ? null : placeholder}
+                    //suppressContentEditableWarning
+                    //contentEditable={isEditor.toString()}
+                    //style={{ backgroundColor: 'rgb(247,247,247)' }}
+                    className={['w-100', isEditor ? 'editable-style' : 'editable-base'].join(' ')}
                     ref={editorRef}
+                    /*onChange={(e) => {
+                        e.persist()
+                        console.log(e)
+                        setInputVal(e.target.value)
+                    }}*/
                     onClick={handleEditChange}
                     onBlur={handleBlur}
                     onKeyDown={handleKeyDown}
-                >{content}</p>
+                />
             </Col>
-            <Col span={5} style={{ textAlign: 'center', fontSize: 14 }}>
-                {
-                    !isEditor ? <a onClick={handleEditChange}>
-                        <Icon type="edit" />  修改
+            {
+                operation && <Col span={5} className='fs-14 text-center'>
+                    {
+                        !isEditor ? <a onClick={handleEditChange}>
+                            <Icon type="edit" />  修改
                     </a> :
-                        <div>
-                            <Spin indicator={antIcon} spinning={loading} />
-                            <a onClick={handleSave}>保存</a>
-                            <Divider type="vertical" />
-                            <a style={{ color: '#333' }} onClick={handleCancel}>取消</a>
-                        </div>
-                }
-            </Col>
+                            <div>
+                                <Spin indicator={antIcon} spinning={loading} />
+                                <a onClick={handleSave}>保存</a>
+                                <Divider type="vertical" />
+                                <a style={{ color: '#333' }} onClick={handleCancel}>取消</a>
+                            </div>
+                    }
+                </Col>
+            }
         </Row>
     )
 }

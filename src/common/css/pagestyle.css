@@ -1,4 +1,27 @@
-.editor-modal{
+
+
+.header-item{
+    height: 64px;
+}
+
+/*login/register*/
+.send-code{
+    color: #909090;
+    pointer-events: none;
+}
+
+.create-header{
+    height: 100px;
+}
+.create-header-left{
+    border-radius: 5px;
+    background: url(../imgs/bg-editor2.jpg) no-repeat;
+}
+.create-header-right{
+    border-radius: 5px;
+    background: url(../imgs/bg-editor2.jpg);
+}
+.editor-modal .bf-modal-body{
     overflow: hidden;
 }
 
@@ -15,6 +38,9 @@
     font-family: 'bf-icons';
     line-height: 123px;
     text-align: center;
+}
+.list-container .ant-spin-container{
+    min-height: 645px;
 }
 .material-item::before {
     display: none;
@@ -49,6 +75,14 @@
 }
 
 
+.braft-editor-content h1{
+    font-size: 2em;
+}
+.braft-editor-content div{
+    line-height: 1.75em;
+}
+
+
 .infinite-container {
     border: 1px solid #e8e8e8;
     border-radius: 4px;
@@ -72,21 +106,20 @@
     cursor: pointer;
     color: #1890ff;
 }
-
-.draft-item-content{
-    display: inline-block;
-    background-color: #bfbfbf;
-    width: 3px;
-    height: 14px;
-    margin-top: 3px;
-    margin-right: 5px;
+.draft-container .ant-list-item-meta{
+    width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    word-break: break-all;
+}
+.draft-container .ant-list-item-meta-content{
+    overflow: hidden;
 }
 .draft-item-title{
-    color: '#444';
-    font-size: 16;
-    text-overflow: ellipsis;
     overflow: hidden;
+    text-overflow: ellipsis;
     white-space: nowrap;
+    word-break: break-all;
     font-weight: 600;
 }
 .draft-item-content-container{
@@ -96,6 +129,18 @@
     -webkit-line-clamp: 3;
     -webkit-box-orient: vertical;
     overflow-wrap: break-word;
+}
+.draft-item-content{
+    display: inline-block;
+    background-color: #bfbfbf;
+    width: 3px;
+    height: 14px;
+    margin-top: 3px;
+    margin-right: 5px;
+}
+
+.filelist-container .ant-list-item-meta, .filelist-container .ant-list-item-meta-content{
+    width: 100%
 }
 
 .image-contain{
@@ -171,7 +216,177 @@
 .output-content{
     font-size: 16px;
 }
+.output-content p{
+    line-height: 1.75em;
+}
 .author-info{
     margin-bottom: 30px;
 }
 
+.back-top-inner {
+    height: 40px;
+    width: 40px;
+    line-height: 40px;
+    border-radius: 4px;
+    background-color: #1088e9;
+    color: #fff;
+    text-align: center;
+    font-size: 20px;
+}
+
+.success-draft-list{
+    padding: 10px;
+    height: 135px;
+    border: 1px solid #d9d9d9;
+    border-radius: 4px;
+    cursor: pointer;
+}
+.editable-input input:disabled{
+    background-color: transparent;
+}
+
+.editable-base{
+    border: 0;
+    outline: 0;
+}
+
+.editable-style{
+    display: flex;
+    align-items:center;
+    width: 95%;
+    height: 32px;
+    font-size: 14px;
+    color: rgba(0, 0, 0, 0.65);
+    padding: 0 10px;
+    line-height: 2.2px;
+    border: 1px solid #d9d9d9;
+    border-radius: 4px;
+    outline: 0;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+    -webkit-user-select: auto;
+}
+
+
+
+/*首页 tabs*/
+.nav-tabs{
+    border-bottom: 2px solid #1890ff;
+    box-sizing: border-box;
+    -webkit-transition: -webkit-transform 0.3s;
+    transition: transform 0.3s;
+}
+
+.logo{
+    height: 32px;
+    cursor: pointer;
+    background-color: rgba(255, 255, 255, 0.2);
+    margin: 16px;
+    font-size: 30px;
+    font-style: italic;
+    font-weight: 600;
+    text-align: center;
+    line-height: 32px;
+    letter-spacing: 10px;
+}
+.logo-blue{
+    color: #1890ff;
+}
+.logo-yellow{
+    color: yellow;
+}
+.logo-orange{
+    color: orange;
+}
+.logo-pink{
+    color: pink;
+}
+
+.login-container{
+    overflow: hidden;
+    position: relative;
+    width: 100%;
+    height: 330px;
+    -webkit-app-region: drag;
+}
+.reg-container{
+    position: relative;
+    width: 100%;
+    height: 330px;
+    -webkit-app-region: drag;
+}
+.login-header-bg{
+    width: 100%;
+    height: 38%;
+    background: url(https://i.loli.net/2019/11/17/GAYyzeKsiWjP5qO.jpg);
+    background-size: cover;
+    background-position: center;
+}
+.login-header{
+    position: absolute;
+    top: 0;
+    right: 0;
+    z-index: 999;
+    -webkit-app-region: no-drag;
+}
+.reg-header{
+    position: absolute;
+    top: 0;
+    right: 0;
+    z-index: 1000;
+    -webkit-app-region: no-drag;
+}
+.login-header span, .reg-header span{
+    display: inline-block;
+    padding: 6px;
+    color: white;
+    font-size: 16px;
+}
+.login-header span:nth-child(2){
+    border-top-right-radius: 4px;
+}
+.login-header span:nth-child(2):hover{
+    background-color: rgb(247, 47, 47, .9);
+}
+.login-box{
+    
+    background-color: transparent;
+    border-radius: 4px;
+    box-shadow: 0 0.3px 0.7px rgba(0, 0, 0, 0.126),
+    0 0.9px 1.7px rgba(0, 0, 0, 0.179), 0 1.8px 3.5px rgba(0, 0, 0, 0.224),
+    0 3.7px 7.3px rgba(0, 0, 0, 0.277), 0 10px 20px rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(20px);
+    transition: 0.5s ease;
+}
+
+.login-box:hover {
+    box-shadow: 0 0.7px 1px rgba(0, 0, 0, 0.157),
+    0 1.7px 2.6px rgba(0, 0, 0, 0.224), 0 3.5px 5.3px rgba(0, 0, 0, 0.28),
+    0 7.3px 11px rgba(0, 0, 0, 0.346), 0 20px 30px rgba(0, 0, 0, 0.5);
+}
+
+
+
+
+
+@keyframes slideOut  {
+    from {
+        -webkit-transform: translate3d(0,0,0);
+        transform: translate3d(0,0,0)
+    }
+    to {
+        -webkit-transform: translate3d(100%,0,0);
+        transform: translate3d(100%,0,0)
+    }
+}
+.quit-effect{
+    -webkit-animation: slideOut .2s forwards;
+    animation: slideOut .2s forwards
+}
+
+/*home*/
+.home-container .selected{
+    color: #1890ff;
+    background-color: #e6f7ff;
+}
