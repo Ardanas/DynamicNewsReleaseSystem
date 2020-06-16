@@ -7,7 +7,7 @@ const menuConfig = [
             { path: "editor", key: "editor", title: "富文本编辑器", icon: "info-circle" }
         ]
     },*/
-    { path: "/fileList/create", key: "editor", title: "发布文章", icon: "form" },
+    { path: "/nav/editor", key: "editor", title: "发布文章", icon: "form" },
     { path: "/nav/material", key: "material", title: "素材库", icon: "bars" },
     { path: "/nav/datacenter", key: "datacenter", title: "数据中心", icon: "bar-chart" },
     { path: "/nav/setting", key: "setting", title: "设置中心", icon: "setting" }

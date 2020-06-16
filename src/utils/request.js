@@ -34,6 +34,7 @@ instance.interceptors.response.use(response => {
     // 判断token是否合理
     if (data.code === 10010) { // token过期, 取出refresh_token, 
         console.log('====refresh')
+        console.log('====config', config)
         if (!isRefreshing) {
             isRefreshing = true
             console.log(localStorage.getItem('user_info'))
@@ -50,7 +51,18 @@ instance.interceptors.response.use(response => {
                 return instance(config)
             }).catch(err => {
                 console.error('refreshtoken error =>', err)
-                history.push('/login')
+                const { response: { data }, config } = err;
+                console.log('===response', response)
+                console.log('===config', config)
+                
+                if (data.status === 401) {
+                    if (data.code === 10013 || data.code === 10012 || data.code === 10011) { //token过期||找不到用户||无效token 重新登录
+                        console.log('???go to login')
+                        localStorage.removeItem('token')
+                        localStorage.removeItem('user_info')
+                        history.push('/login')
+                    }
+                }
             }).finally(() => {
                 isRefreshing = false
             })
@@ -67,6 +79,7 @@ instance.interceptors.response.use(response => {
     }
     return response;
 }, error => {
+    console.log('====error', error)
     const { response, config } = error
     if (!config || !config.retry) return Promise.reject(error);
     console.log('====response', response)

@@ -4,7 +4,6 @@ import { useRequest } from '@umijs/hooks';
 import UploadImage from '../components/UploadImage'
 import api from '../utils/api';
 const { getMaterialList, deleteMaterialList } = api
-const user_info = JSON.parse(localStorage.getItem('user_info'))
 export default function MaterialPage() {
 
 
@@ -76,7 +75,7 @@ export default function MaterialPage() {
                 status: status
             }
             console.log(fileList)
-            setFileList([...fileList, item])
+            setFileList([item, ...fileList])
         }
     }
 

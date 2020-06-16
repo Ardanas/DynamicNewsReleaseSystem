@@ -31,7 +31,7 @@ const menuRouteConfig = [
         component: EditorPage
     },
     {
-        path: "/fileList/:id",
+        path: "/nav/editor",
         exact: true,
         component: EditorPage
     },

@@ -11,7 +11,7 @@ function TableComponent({ columns = [], tableData = [], loading = false, deletel
         onPreview && onPreview(record)
     }
     const handleShowRender = (record, text) => {
-        return record.fbzt.value ? <a onClick={(e) => handlePreview(e, record)}>{text}</a> : <Link to={`/fileList/${record.systemid}`}>{text || '(无标题)'}</Link>
+        return record.fbzt.value ? <a onClick={(e) => handlePreview(e, record)}>{text}</a> : <Link to={`/nav/editor?id=${record.systemid}`}>{text || '(无标题)'}</Link>
     }
     const getColumnSearchProps = (dataIndex) => ({
         filterDropdown: ({ setSelectedKeys, selectedKeys, confirm, clearFilters }) => (

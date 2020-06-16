@@ -52,7 +52,7 @@ const createMainWindow = () => {
         }
     })
     mainWindow.on('close', () => mainWindow = null)
-    //mainWindow.webContents.openDevTools()
+    mainWindow.webContents.openDevTools()
 }
 const createLoginWindow = () => {
     loginWindow = new BrowserWindow({
@@ -74,7 +74,7 @@ const createLoginWindow = () => {
     loginWindow.on('close', () => {
         loginWindow = null
     })
-    //loginWindow.webContents.openDevTools()
+    loginWindow.webContents.openDevTools()
 }
 ipcMain.on('open-main-window', createMainWindow)//打开主界面
 ipcMain.on('minimize-login-window', () => loginWindow.minimize())

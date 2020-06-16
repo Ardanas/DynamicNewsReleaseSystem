@@ -16,7 +16,7 @@ const api = {
         return request('get', `/user/getMaterialList`);
     },
     addMaterialList(params) {
-        return request('post', `/user/addMaterialList`, params, { 'Content-Type': 'multipart/form-data' });
+        return request('post', `/user/addMaterialList`, params);
     },
     deleteMaterialList(params) {
         return request('delete', `/user/material`, params);
@@ -51,6 +51,9 @@ const api = {
     },
     updatePassword(params) {
         return request('post', `/user/updatePassword`, params);
+    },
+    verifyFileMd5(params) {
+        return request('post', `/user/verifyFile`, params);
     }
 }
 

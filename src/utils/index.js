@@ -1,4 +1,5 @@
 import { notification } from 'antd'
+import SparkMD5 from 'spark-md5'
 const tagsColor = {
     lylx: ['#108eea', '#87d068'], //原创、转载
     channel: {
@@ -53,9 +54,31 @@ const handleNotification = (message, description, type = 'info', duration = 2.5)
         duration
     });
 }
+const handlePrepareUpload = (dataFile) => {
+    return new Promise((resolve, reject) => {
+        const fileReader = new FileReader();
+        const spark = new SparkMD5(); //创建md5对象（基于SparkMD5）
+        if (dataFile.size > 1024 * 1024 * 10) {
+            const item = dataFile.slice(0, 1024 * 1024 * 10); //将文件进行分块 file.slice(start,length)
+            fileReader.readAsBinaryString(item); //将文件读取为二进制码
+        } else {
+            fileReader.readAsBinaryString(dataFile);
+        }
+        //文件读取完毕之后的处理
+        //a639e28526d1809745b46bf1189594fe  6d9efe0c593b1383482feb229318e03a
+        fileReader.onload = function (e) {
+            spark.appendBinary(e.target.result);
+            resolve(spark.end())
+        };
+        fileReader.onerror = function (e) {
+            reject(e)
+        }
+    })
+};
 export {
     tagsColor,
     dictionary,
     handleRule,
-    handleNotification
+    handleNotification,
+    handlePrepareUpload
 }

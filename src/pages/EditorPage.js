@@ -2,12 +2,12 @@ import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { withRouter } from 'react-router'
 import BraftEditor from 'braft-editor'
-import { Button, Drawer, message, Input, Icon, Form, Radio, Checkbox, Tooltip, DatePicker, Row, Col, BackTop, Alert, Spin } from 'antd'
+import { Button, Drawer, message, Input, Icon, Form, Radio, Checkbox, Tooltip, DatePicker, Row, Col, BackTop, Alert, Spin, Affix } from 'antd'
 import { ContentUtils } from 'braft-utils'
 import useForm from 'rc-form-hooks';
 import moment from 'moment';
 import locale from 'antd/lib/date-picker/locale/zh_CN';
-import { useRequest, usePrevious } from '@umijs/hooks';
+import { useRequest } from '@umijs/hooks';
 import 'braft-editor/dist/index.css'
 import 'braft-editor/dist/output.css'
 import defaultConfig from '../common/config'
@@ -16,7 +16,10 @@ import TitleInput from '../components/TitleInput'
 import EditorModal from '../components/EditorModal'
 import UploadImage from '../components/UploadImage'
 import OutputPreview from '../components/OutputPreview'
+import DraftFileList from './FileListPage'
+import useData from '../hooks/useApiHook'
 import api from '../utils/api';
+import { handlePrepareUpload } from '../utils';
 const Store = window.require('electron-store');
 const { dialog } = window.require('electron').remote
 const iconv = window.require('iconv-lite')
@@ -25,7 +28,7 @@ const mammoth = window.require('mammoth')
 const path = window.require('path')
 const store = new Store()
 const { editorPage: { editorConfig, formConfig } } = defaultConfig
-const { addMaterialList, addNews, getNewsById, updateNews, saveNews } = api
+const { addMaterialList, addNews, getNewsById, updateNews, saveNews, getNews, verifyFileMd5 } = api
 const DateFormat = 'YYYY-MM-DD HH:mm:ss'
 
 
@@ -40,6 +43,8 @@ function EditorPage({ history, location, match }) {
     const [systemid, setSystemid] = useState('')
     const [editorContent, setEditorContent] = useState('')
     //const editorContentPrevious = usePrevious(editorContent)
+    const [draftData, draftLoading] = useData(getNews, 0);
+    // console.log("draftData", draftData)
 
     const handleRequestError = () => {
         message.error('服务器错误, 请联系管理员')
@@ -84,39 +89,29 @@ function EditorPage({ history, location, match }) {
                 'mdIsScheduledRelease': res.sfdsfb,
                 //'mdScheduledReleaseTime': res.sfdsfb ? moment(res.dsfbsj) : moment().add(4, 'hours'),
                 'mdScheduledReleaseTime': moment().add(4, 'hours'), //全部统一当下时间, 定时发布时间不保存之前的值
-                'systemid': res.systemid
             })
+            console.log('res.systemid', res.systemid)
             setSystemid(res.systemid)
+            store.set('editor_page', {
+                newsid: res.systemid
+            })
             setEditorContent(res.contentfortext)
             editorInstance.setValue(BraftEditor.createEditorState(res.content))
         }
     })
 
-    //const { run: saveRun, loading: saveLoading } = useRequest()
-
-
-
     useEffect(() => {
         const { search = '', pathname } = location
         const { path, params, url } = match
         console.log(match)
+        console.log(location)
         console.log(pathname)
         if (pathname === url) {
-            if (params.id !== 'create') {
-                //console.log('before', values)
+            if (search !== '') {
+                const sid = search.split('=').pop();
                 resetFields()
-                getRun(params.id)
+                getRun(sid)
             }
-            /*if (search !== '' && search.length !== 0) {
-                //const id = search.split('=')[1]
-                
-                const params = pathname.split('/').pop
-                if (params && params !== 'create') {
-                    getRun(params)
-                }
-
-                //setIsUpdateModel(true)
-            }*/
         } else {
             history.push('/nav/404')
         }
@@ -139,7 +134,7 @@ function EditorPage({ history, location, match }) {
     const submitContent = async () => {
         // 在编辑器获得焦点时按下ctrl+s会执行此方法
         // 编辑器内容提交到服务端之前，可直接调用editorState.toHTML()来获取HTML格式的内容
-
+        console.log('systemid', systemid)
         message.info('保存成功')
 
     }
@@ -265,27 +260,59 @@ function EditorPage({ history, location, match }) {
         )
     }
     const handleUpload = (params) => {
-        //console.log(params)
-        const { success, error, file, progress, id } = params
-        let form = new FormData();
-        form.set('file', file);
-        addMaterialList(form).then(data => {
-            console.log(data)
-            const { sign, datas: { originalFilename, path } } = data
-            //判断是否上传成功，成功则执行
-            if (sign === '1') {
-                //请求添加到素材库的新接口，
-                success({
-                    url: path,
-                    meta: {
-                        id,
-                        title: originalFilename,
-                        alt: '加载失败'
+        const { success, error, file, progress, id } = params;
+        const { newsid } = store.get('editor_page');
+        // 先检验md5
+        handlePrepareUpload(file).then(res => {
+            const fileid = res;
+            verifyFileMd5({ fileid }).then((data) => {
+                const { sign, code, errMsg = '', datas = {} } = data;
+                if (sign === '1') {
+                    const { originalFilename, path } = datas
+                    if (code === 20010) {
+                        success({
+                            url: path,
+                            meta: {
+                                id,
+                                title: originalFilename,
+                                alt: originalFilename
+                            }
+                        })
+                    } else if (code === 20012) {
+                        const form = new FormData();
+                        form.set('file', file);
+                        form.set('fileid', fileid)
+                        form.set('newsid', newsid)
+                        form.set('upload_type', 1)
+                        // form.set('params', { fileid, newsid: systemid, upload_type: '1' });
+                        addMaterialList(form).then(data => {
+                            const { sign, datas: { originalFilename, path } } = data
+                            //判断是否上传成功，成功则执行
+                            if (sign === '1') {
+                                //请求添加到素材库的新接口，
+                                success({
+                                    url: path,
+                                    meta: {
+                                        id,
+                                        title: originalFilename,
+                                        alt: originalFilename
+                                    }
+                                })
+                            }
+                        })
+                    } else if (code === 20011) {
+                        error({
+                            url: path,
+                            meta: {
+                                id,
+                                title: originalFilename,
+                                alt: originalFilename
+                            }
+                        })
+                        message.warning(errMsg)
                     }
-                })
-            }
-        }, err => {
-            console.log(err)
+                }
+            })
         })
     }
     const mediaParams = {
@@ -297,7 +324,7 @@ function EditorPage({ history, location, match }) {
         pasteImage: true
     }
     const handleModalClick = () => {
-        const selectedMaterialList = store.get('selectedMaterialList') // 选择的图片对象 
+        const selectedMaterialList = store.get('selectedMaterialList') // 选择的图片对象
         if (selectedMaterialList.length !== 0) {
             const editorStateFormModal = editorInstance.getValue()
             const newEditorState = ContentUtils.insertMedias(editorStateFormModal, selectedMaterialList)
@@ -331,7 +358,7 @@ function EditorPage({ history, location, match }) {
                         ]
                     }).then(function (result) {
                         console.log(result)
-                        const text = result.value; // The raw text 
+                        const text = result.value; // The raw text
                         handleSaveImportFiles(text)
                     }).done();
                 } else {
@@ -353,7 +380,7 @@ function EditorPage({ history, location, match }) {
             title: '选择素材库资源', // 指定鼠标悬停提示文案
             className: 'editor-modal-btn', // 指定触发按钮的样式名
             html: null, // 指定在按钮中渲染的html字符串
-            text: '素材库', // 指定按钮文字，此处可传入jsx，若已指定html，则text不会显示    
+            text: '素材库', // 指定按钮文字，此处可传入jsx，若已指定html，则text不会显示
             onClick: () => { }, // 指定触发按钮点击后的回调函数
             modal: {
                 id: 'editor-modal', // 必选属性，传入一个唯一字符串即可
@@ -392,171 +419,181 @@ function EditorPage({ history, location, match }) {
             },
         }
     ]
+    const lg = draftData && draftData.datas.length > 0 ? 19 : 24;
+    const xl = draftData && draftData.datas.length > 0 ? 20 : 24;
     return (
         <Spin spinning={getLoading}>
-            <BackTop style={{ right: 25, bottom: 25 }}>
-                <div className="back-top-inner">
-                    <Icon type="arrow-up" />
-                </div>
-            </BackTop>
-            <Form onSubmit={handleSubmit}>
-                <Form.Item key='mdTitle' style={{ marginBottom: 0, backgroundColor: '#fff' }}>
-                    {getFieldDecorator('mdTitle', {
-                        rules: [{ required: true, message: '请输入文章标题' }],
-                        initialValue: ''
-                    })(
-                        <TitleInput
-                            compClass='title-input-style'
-                            defaultHeigt={44}
-                            onChange={(value) => handleSetFieldsValue('mdTitle', value)}
-                            placeholder='请输入文章标题'
-                            defaultValue={values.mdTitle}
-                        />
-                    )}
-                </Form.Item>
-                <Form.Item key='mdIntroduction' style={{
-                    marginTop: 20,
-                    backgroundColor: '#f2f2f5',
-                    borderLeft: '6px solid #e6e6e6'
-                }}>
-                    {getFieldDecorator('mdIntroduction', {
-                        initialValue: ''
-                    })(
-                        <TitleInput
-                            compClass='intro-input-style'
-                            defaultHeigt={40}
-                            onChange={(value) => handleSetFieldsValue('mdIntroduction', value)}
-                            placeholder='简介(选填)'
-                            maxLength={44}
-                            defaultValue={values.mdIntroduction}
-                        />
-                    )}
-                </Form.Item>
+            <Row gutter={16}>
+                <Col lg={lg} xl={xl}>
+                    <BackTop style={{ right: 25, bottom: 25 }}>
+                        <div className="back-top-inner">
+                            <Icon type="arrow-up" />
+                        </div>
+                    </BackTop>
+                    <Form onSubmit={handleSubmit}>
+                        <Form.Item key='mdTitle' style={{ marginBottom: 0, backgroundColor: '#fff' }}>
+                            {getFieldDecorator('mdTitle', {
+                                rules: [{ required: true, message: '请输入文章标题' }],
+                                initialValue: ''
+                            })(
+                                <TitleInput
+                                    compClass='title-input-style'
+                                    defaultHeigt={44}
+                                    onChange={(value) => handleSetFieldsValue('mdTitle', value)}
+                                    placeholder='请输入文章标题'
+                                    defaultValue={values.mdTitle}
+                                />
+                            )}
+                        </Form.Item>
+                        <Form.Item key='mdIntroduction' style={{
+                            marginTop: 20,
+                            backgroundColor: '#f2f2f5',
+                            borderLeft: '6px solid #e6e6e6'
+                        }}>
+                            {getFieldDecorator('mdIntroduction', {
+                                initialValue: ''
+                            })(
+                                <TitleInput
+                                    compClass='intro-input-style'
+                                    defaultHeigt={40}
+                                    onChange={(value) => handleSetFieldsValue('mdIntroduction', value)}
+                                    placeholder='简介(选填)'
+                                    maxLength={44}
+                                    defaultValue={values.mdIntroduction}
+                                />
+                            )}
+                        </Form.Item>
+                        <Form.Item key='mdContent'>
+                            {getFieldDecorator('mdContent', {
+                                rules: [{ required: true, message: '请输入文章内容' }],
+                                initialValue: ''
+                            })(
+                                <BraftEditor
+                                    {...editorConfig}
+                                    contentClassName='braft-editor-content'
+                                    ref={instance => setEditorInstance(instance)}
+                                    //value={editorState}
+                                    media={mediaParams}
+                                    extendControls={extendControls}
+                                    onChange={handleEditorChange}
+                                    onSave={submitContent}
+                                    contentStyle={{ height: 450, whiteSpace: 'pre' }}
+                                    draftProps={{
+                                        handleDroppedFiles: function (selection, files) {
+                                            //console.log(selection.toText())
+                                            console.log('asdasd', files)
+                                        }
+                                    }}
+                                />
+                            )}
+                        </Form.Item>
+                        <Form.Item label="封面" key='mdCover'>
+                            {getFieldDecorator('mdCover', { initialValue: '' })(
+                                <UploadImage
+                                    className='image-uploader'
+                                    defaultImageUrl={values.mdCover}
+                                    onChange={(data) => handleSetFieldsValue('mdCover', data.path)}
+                                />
+                            )}
+                        </Form.Item>
+                        <Form.Item label="类型" key='mdType'>
+                            {getFieldDecorator('mdType', {
+                                initialValue: 0
+                            })(
+                                <>
+                                    <Radio.Group onChange={handleRadioChange} value={values.mdType}>
+                                        <Radio value={0}>原创</Radio>
+                                        <Radio value={1}>转载</Radio>
+                                    </Radio.Group>
+                                    <Row>
+                                        {handleMdTypeComponent(values.mdType)}
+                                    </Row>
+                                </>
+                            )}
+                        </Form.Item>
+                        <Form.Item label="分区" key='mdChannel'>
+                            {getFieldDecorator('mdChannel', {
+                                initialValue: 'a'
+                            })(
+                                <>
+                                    <RadioList
+                                        dataLists={formConfig.channelList}
+                                        defaultRadioValue={values.mdChannel}
+                                        onChange={(e) => handleSetFieldsValue("mdChannel", e.target.value)}
+                                    />
+                                </>
+                            )}
+                        </Form.Item>
+                        <Form.Item key='mdIsScheduledRelease'>
+                            {getFieldDecorator('mdIsScheduledRelease', { initialValue: 0 })(
+                                <>
+                                    <Checkbox
+                                        checked={Boolean(values.mdIsScheduledRelease)}
+                                        onChange={(e) => handleSetFieldsValue('mdIsScheduledRelease', Number(e.target.checked))}
+                                    >定时发布</Checkbox>
 
-                <Form.Item key='mdContent'>
-                    {getFieldDecorator('mdContent', {
-                        rules: [{ required: true, message: '请输入文章内容' }],
-                        initialValue: ''
-                    })(
-                        <BraftEditor
-                            {...editorConfig}
-                            contentClassName='braft-editor-content'
-                            ref={instance => setEditorInstance(instance)}
-                            //value={editorState}
-                            media={mediaParams}
-                            extendControls={extendControls}
-                            onChange={handleEditorChange}
-                            onSave={submitContent}
-                            contentStyle={{ height: 450, whiteSpace: 'pre' }}
-                            draftProps={{
-                                handleDroppedFiles: function (selection, files) {
-                                    //console.log(selection.toText())
-                                    console.log('asdasd', files)
-                                }
-                            }}
-                        />
-                    )}
-                </Form.Item>
+                                    {values.mdIsScheduledRelease ?
+                                        getFieldDecorator('mdScheduledReleaseTime', {
+                                            initialValue: moment().add(4, 'hours')
+                                        })(
+                                            <DatePicker
+                                                showToday
+                                                showTime
+                                                allowClear={false}
+                                                locale={locale}
+                                                format="YYYY-MM-DD HH:mm"
+                                                disabledDate={disabledDate} />
+                                        ) : null
+                                    }
+                                    <Tooltip title="(默认是4小时以后,以北京时间为准, ≥4小时, <15天)">
+                                        <Icon type="exclamation-circle" style={{ fontSize: '18px', color: '#08c', marginLeft: '10px' }} />
+                                    </Tooltip>
 
-
-
-                <Form.Item label="封面" key='mdCover'>
-                    {getFieldDecorator('mdCover', { initialValue: '' })(
-                        <UploadImage
-                            className='image-uploader'
-                            defaultImageUrl={values.mdCover}
-                            onChange={(data) => handleSetFieldsValue('mdCover', data.path)}
-                        />
-                    )}
-                </Form.Item>
-
-                <Form.Item label="类型" key='mdType'>
-                    {getFieldDecorator('mdType', {
-                        initialValue: 0
-                    })(
-                        <>
-                            <Radio.Group onChange={handleRadioChange} value={values.mdType}>
-                                <Radio value={0}>原创</Radio>
-                                <Radio value={1}>转载</Radio>
-                            </Radio.Group>
-                            <Row>
-                                {handleMdTypeComponent(values.mdType)}
-                            </Row>
-                        </>
-                    )}
-                </Form.Item>
-
-                <Form.Item label="分区" key='mdChannel'>
-                    {getFieldDecorator('mdChannel', {
-                        initialValue: 'a'
-                    })(
-                        <>
-                            <RadioList
-                                dataLists={formConfig.channelList}
-                                defaultRadioValue={values.mdChannel}
-                                onChange={(e) => handleSetFieldsValue("mdChannel", e.target.value)}
-                            />
-                        </>
-                    )}
-                </Form.Item>
-
-
-
-                <Form.Item key='mdIsScheduledRelease'>
-                    {getFieldDecorator('mdIsScheduledRelease', { initialValue: 0 })(
-                        <>
-                            <Checkbox
-                                checked={Boolean(values.mdIsScheduledRelease)}
-                                onChange={(e) => handleSetFieldsValue('mdIsScheduledRelease', Number(e.target.checked))}
-                            >定时发布</Checkbox>
-
-                            {values.mdIsScheduledRelease ?
-                                getFieldDecorator('mdScheduledReleaseTime', {
-                                    initialValue: moment().add(4, 'hours')
-                                })(
-                                    <DatePicker
-                                        showToday
-                                        showTime
-                                        allowClear={false}
-                                        locale={locale}
-                                        format="YYYY-MM-DD HH:mm"
-                                        disabledDate={disabledDate} />
-                                ) : null
+                                </>
+                            )}
+                        </Form.Item>
+                        <Form.Item key='submit' style={{ textAlign: 'center' }}>
+                            <Button type="primary" htmlType="submit">
+                                提交稿件
+                            </Button>
+                            <Button type="primary" onMouseDown={handlePreview} style={{ margin: '0 20px' }} >
+                                预览
+                            </Button>
+                            <span style={{ fontSize: 14, color: '#ccc' }}>(实际效果以预览为准)</span>
+                        </Form.Item>
+                    </Form>
+                    <Row>
+                        <Alert
+                            message="温馨提示"
+                            description={
+                                <>
+                                    <p>1. 不支持复制本地图片、但支持复制网络图片和直接拖动本地图片</p>
+                                    <p>2. 首行缩进用Tab, 用空格无效</p>
+                                </>
                             }
-                            <Tooltip title="(默认是4小时以后,以北京时间为准, ≥4小时, <15天)">
-                                <Icon type="exclamation-circle" style={{ fontSize: '18px', color: '#08c', marginLeft: '10px' }} />
-                            </Tooltip>
-
-                        </>
-                    )}
-                </Form.Item>
-                <Form.Item key='submit' style={{ textAlign: 'center' }}>
-                    <Button type="primary" htmlType="submit">
-                        提交稿件
-                    </Button>
-                    <Button type="primary" onMouseDown={handlePreview} style={{ margin: '0 20px' }} >
-                        预览
-                    </Button>
-                    <span style={{ fontSize: 14, color: '#ccc' }}>(实际效果以预览为准)</span>
-
-
-                </Form.Item>
-            </Form>
-            <Row>
-                <Alert
-                    message="温馨提示"
-                    description={
-                        <>
-                            <p>1. 不支持复制本地图片、但支持复制网络图片和直接拖动本地图片</p>
-                            <p>2. 首行缩进用Tab, 用空格无效</p>
-                        </>
-                    }
-                    type="warning"
-                    closable
-                    showIcon
-                />
+                            type="warning"
+                            closable
+                            showIcon
+                        />
+                    </Row>
+                </Col>
+                {
+                    draftData && draftData.datas.length > 0 ? (
+                        <Col lg={5} xl={4} style={{ background: '#f4f4f5' }}>
+                            <DraftFileList
+                                listData={draftData}
+                                listLoading={draftLoading}
+                                systemid={systemid}
+                                onChange={sid => {
+                                        resetFields();
+                                        getRun(sid)
+                                    }
+                                }
+                            />
+                        </Col>
+                    ) : null
+                }
             </Row>
-
 
             <Drawer
                 title='文章预览'
